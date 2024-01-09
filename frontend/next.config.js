@@ -11,7 +11,7 @@ const nextConfig = {
       },
       {
         protocol: 'https',
-        hostname: 'images.pexels.com',
+        hostname: 'personal-blog-strapi-9oks.onrender.com',
       }
     ],
   },
