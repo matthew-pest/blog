@@ -1,4 +1,4 @@
-import {sectionRenderer} from "@/app/[lang]/utils/section-renderer";
+import {sectionRenderer} from "@/app/[lang]/utils/section-renderer-new";
 import {Metadata} from "next";
 import {getPageBySlug} from "@/app/[lang]/utils/get-page-by-slug";
 import {FALLBACK_SEO} from "@/app/[lang]/utils/constants";
@@ -27,7 +27,10 @@ export async function generateMetadata({params}: Props): Promise<Metadata> {
 
 export default async function PageRoute({params}: Props) {
     const page = await getPageBySlug(params.slug, params.lang);
+    console.log(page.data[0]);
     if (page.data.length === 0) return null;
     const contentSections = page.data[0].attributes.contentSections;
+    // const { title, description, publishedAt, cover, authorsBio } = data.attributes;
+    console.log(contentSections);
     return contentSections.map((section: any, index: number) => sectionRenderer(section, index));
 }
