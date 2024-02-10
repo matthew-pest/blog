@@ -59,8 +59,6 @@ function RenderSocialIcon({ social }: { social: string | undefined }) {
       return <AiFillTwitterCircle />;
     case "YOUTUBE":
       return <AiFillYoutube />;
-    case "DISCORD":
-      return <FaDiscord />;
     default:
       return null;
   }
