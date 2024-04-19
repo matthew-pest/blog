@@ -2,6 +2,10 @@
 
 const nextConfig = {
   images: {
+    domains: [
+        'images.unsplash.com',
+        'elasticbeanstalk-us-east-2-641171614455.us-east-2.amazonaws.com'
+    ],
     remotePatterns: [
       {
         protocol: 'https',
