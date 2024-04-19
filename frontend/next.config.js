@@ -4,6 +4,10 @@ const nextConfig = {
   images: {
     remotePatterns: [
       {
+        protocol: 'https',
+        hostname: 'elasticbeanstalk-us-east-2-641171614455.us-east-2.amazonaws.com',
+      },
+      {
         protocol: 'http',
         hostname: 'localhost',
         port: '1337',
