@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import React from 'react';
 
 const Page = () => {
@@ -18,13 +19,15 @@ const Page = () => {
     <div className="flex flex-col items-center justify-center px-4 lg:px-8">
       {/* Adjusting the width to use the middle third of the screen */}
       <div className="w-full md:w-2/3 lg:w-1/3" dangerouslySetInnerHTML={htmlContent} />
-      <a
-        href={pdfUrl}
-        download
-        className="mt-4 px-6 py-2 bg-custom-gray text-white font-semibold rounded hover:bg-blue-700 transition-colors"
-      >
-        Download PDF
-      </a>
+      <div>
+        <Link
+          href={pdfUrl}
+          download
+          className="inline-block px-4 py-2 mt-4 text-sm font-semibold text-white transition duration-200 ease-in-out bg-violet-500 rounded-lg hover:bg-violet-600"
+        >
+          Download PDF
+        </Link>
+      </div>
     </div>
   );
 };
