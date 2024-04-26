@@ -5,8 +5,9 @@ const nextConfig = {
     remotePatterns: [
       {
         protocol: 'https',
-        hostname: 'elasticbeanstalk-us-east-2-641171614455.us-east-2.amazonaws.com',
-        pathname: '/**/*.{jpg,jpeg,png,gif,webp,avif}',
+        hostname: 'elasticbeanstalk-us-east-2-641171614455.s3.us-east-2.amazonaws.com',
+        port: '',
+        pathname: '/**',
       },
       {
         protocol: 'http',
@@ -20,12 +21,7 @@ const nextConfig = {
       }
     ],
     formats: ['image/avif', 'image/webp'],
-  },
-  experimental: {
-    images: {
-      allowFutureImage: true,
-      unoptimized: true,
-    },
+    unoptimized: true
   },
 }
 
