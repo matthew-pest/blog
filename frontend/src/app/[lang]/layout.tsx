@@ -1,102 +1,66 @@
-import type { Metadata } from "next";
-import "./globals.css";
-import { getStrapiMedia, getStrapiURL } from "./utils/api-helpers";
-import { fetchAPI } from "./utils/fetch-api";
+import type { Metadata, Viewport } from 'next';
+import '../globals.css';
+import { GeistMono, GeistSans } from '@/lib/fonts';
+import { i18n } from '../../../i18n-config';
+import AmbientField from '@/components/ambient/AmbientField';
+import Nav from '@/components/site/Nav';
+import Footer from '@/components/site/Footer';
+import AgentDock from '@/components/agent/AgentDock';
+import PageContextReporter from '@/components/agent/PageContextReporter';
+import { TooltipProvider } from '@/components/ui/tooltip';
 
-import { i18n } from "../../../i18n-config";
-import Banner from "./components/Banner";
-import Footer from "./components/Footer";
-import Navbar from "./components/Navbar";
-import {FALLBACK_SEO} from "@/app/[lang]/utils/constants";
+const SITE = 'https://www.mattpest.com';
 
+export const metadata: Metadata = {
+  metadataBase: new URL(SITE),
+  title: { default: 'Matt Pest', template: '%s · Matt Pest' },
+  description:
+    'Principal AI & data architect in Chicago. Essays on physics, AI and engineering — and a resident agent that reads them, opens the résumé, and searches the web.',
+  openGraph: {
+    type: 'website',
+    siteName: 'Matt Pest',
+    title: 'Matt Pest',
+    description: 'A personal site with an agent in it.',
+  },
+};
 
-async function getGlobal(lang: string): Promise<any> {
-  const token = process.env.NEXT_PUBLIC_STRAPI_API_TOKEN;
+export const viewport: Viewport = {
+  themeColor: '#0b0b10',
+  colorScheme: 'dark',
+};
 
-  if (!token) throw new Error("The Strapi API Token environment variable is not set.");
-
-  const path = `/global`;
-  const options = { headers: { Authorization: `Bearer ${token}` } };
-
-  const urlParamsObject = {
-    populate: [
-      "metadata.shareImage",
-      "favicon",
-      "notificationBanner.link",
-      "navbar.links",
-      "navbar.navbarLogo.logoImg",
-      "footer.footerLogo.logoImg",
-      "footer.menuLinks",
-      "footer.legalLinks",
-      "footer.socialLinks",
-      "footer.categories",
-    ],
-    locale: lang,
-  };
-  return await fetchAPI(path, urlParamsObject, options);
-}
-
-export async function generateMetadata({ params } : { params: {lang: string}}): Promise<Metadata> {
-  const meta = await getGlobal(params.lang);
-
-  if (!meta.data) return FALLBACK_SEO;
-
-  const { metadata, favicon } = meta.data.attributes;
-  const { url } = favicon.data.attributes;
-
-  return {
-    title: metadata.metaTitle,
-    description: metadata.metaDescription,
-    icons: {
-      icon: [new URL(url, getStrapiURL())],
-    },
-  };
-}
+type LayoutParams = Promise<{ lang: string }>;
 
 export default async function RootLayout({
   children,
   params,
 }: {
   children: React.ReactNode;
-  params: { lang: string };
+  params: LayoutParams;
 }) {
-  const global = await getGlobal(params.lang);
-  // TODO: CREATE A CUSTOM ERROR PAGE
-  if (!global.data) return null;
-  
-  const { notificationBanner, navbar, footer } = global.data.attributes;
-
-  const navbarLogoUrl = getStrapiMedia(
-    navbar.navbarLogo.logoImg.data.attributes.url
-  );
-
-  const footerLogoUrl = getStrapiMedia(
-    footer.footerLogo.logoImg.data.attributes.url
-  );
+  const { lang } = await params;
 
   return (
-    <html lang={params.lang}>
-      <body>
-        <Navbar
-          links={navbar.links}
-          logoUrl={navbarLogoUrl}
-          logoText={navbar.navbarLogo.logoText}
+    <html lang={lang} className={`dark ${GeistSans.variable} ${GeistMono.variable}`} suppressHydrationWarning>
+      <head>
+        {/* CSS Custom Highlight API for agent-driven highlights; Lightning CSS can't parse ::highlight(). */}
+        <style
+          dangerouslySetInnerHTML={{
+            __html: '::highlight(agent-highlight){background:oklch(0.72 0.17 300 / 34%);color:inherit;}',
+          }}
         />
-
-        <main className="dark:bg-black dark:text-gray-100 min-h-screen">
-          {children}
-        </main>
-
-        <Banner data={notificationBanner} />
-
-        <Footer
-          logoUrl={footerLogoUrl}
-          logoText={footer.footerLogo.logoText}
-          menuLinks={footer.menuLinks}
-          categoryLinks={footer.categories.data}
-          legalLinks={footer.legalLinks}
-          socialLinks={footer.socialLinks}
-        />
+      </head>
+      <body className="text-foreground">
+        <TooltipProvider delayDuration={300}>
+          <AmbientField />
+          <PageContextReporter />
+          <Nav lang={lang} />
+          <main id="main" className="relative min-h-dvh pt-20">
+            {children}
+          </main>
+          <Footer lang={lang} />
+          <AgentDock lang={lang} />
+        </TooltipProvider>
       </body>
     </html>
   );

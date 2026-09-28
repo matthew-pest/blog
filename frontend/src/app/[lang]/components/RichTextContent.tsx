@@ -1,6 +1,5 @@
 import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { useEffect } from "react";
 
 interface RichTextProps {
   data: {
@@ -10,9 +9,9 @@ interface RichTextProps {
 
 export default function RichText({ data }: RichTextProps) {
   return (
-    <section className="flex justify-center items-center py-6 dark:bg-black dark:text-gray-50">
-      <div className="w-2/3">
-        <Markdown children={data.content} remarkPlugins={[remarkGfm]} />
+    <section className="mx-auto max-w-3xl px-5 py-10">
+      <div className="prose-site">
+        <Markdown remarkPlugins={[remarkGfm]}>{data.content}</Markdown>
       </div>
     </section>
   );

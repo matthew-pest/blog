@@ -1,83 +1,48 @@
+import type { Metadata } from 'next';
+import { notFound } from 'next/navigation';
 import { fetchAPI } from '@/app/[lang]/utils/fetch-api';
 import Post from '@/app/[lang]/views/post';
-import type { Metadata } from 'next';
+import { listPosts } from '@/lib/site/content';
+
+type PostParams = Promise<{ slug: string; category: string; lang: string }>;
 
 async function getPostBySlug(slug: string) {
-    const token = process.env.NEXT_PUBLIC_STRAPI_API_TOKEN;
-    const path = `/articles`;
-    const urlParamsObject = {
-        filters: { slug },
-        populate: {
-            cover: { fields: ['url'] },
-            authorsBio: { populate: '*' },
-            category: { fields: ['name'] },
-            blocks: { 
-                populate: {
-                    '__component': '*', 
-                    'files': '*',
-                    'file': '*',
-                    'url': '*',
-                    'body': '*',
-                    'title': '*',
-                    'author': '*',
-                }
-            },
-        },
-    };
-    const options = { headers: { Authorization: `Bearer ${token}` } };
-    const response = await fetchAPI(path, urlParamsObject, options);
-    return response;
+  const token = process.env.STRAPI_API_TOKEN || process.env.NEXT_PUBLIC_STRAPI_API_TOKEN;
+  const urlParamsObject = {
+    filters: { slug },
+    populate: {
+      cover: { fields: ['url'] },
+      authorsBio: { populate: '*' },
+      category: { fields: ['name', 'slug'] },
+      seo: { populate: '*' },
+      blocks: {
+        populate: { __component: '*', files: '*', file: '*', url: '*', body: '*', title: '*', author: '*' },
+      },
+    },
+  };
+  return fetchAPI('/articles', urlParamsObject, { headers: { Authorization: `Bearer ${token}` } });
 }
 
-async function getMetaData(slug: string) {
-    const token = process.env.NEXT_PUBLIC_STRAPI_API_TOKEN;
-    const path = `/articles`;
-    const urlParamsObject = {
-        filters: { slug },
-        populate: { seo: { populate: '*' } },
-    };
-    const options = { headers: { Authorization: `Bearer ${token}` } };
-    const response = await fetchAPI(path, urlParamsObject, options);
-    return response.data;
+export async function generateMetadata({ params }: { params: PostParams }): Promise<Metadata> {
+  const { slug } = await params;
+  const data = await getPostBySlug(slug);
+  const a = data.data?.[0]?.attributes;
+  if (!a) return {};
+  return {
+    title: a.seo?.metaTitle ?? a.title,
+    description: a.seo?.metaDescription ?? a.description,
+    openGraph: { title: a.title, description: a.description, type: 'article', publishedTime: a.publishedAt },
+  };
 }
 
-export async function generateMetadata({ params }: { params: { slug: string } }): Promise<Metadata> {
-    const meta = await getMetaData(params.slug);
-    const metadata = meta[0].attributes.seo;
-
-    return {
-        title: metadata.metaTitle,
-        description: metadata.metaDescription,
-    };
-}
-
-export default async function PostRoute({ params }: { params: { slug: string } }) {
-    const { slug } = params;
-    const data = await getPostBySlug(slug);
-    if (data.data.length === 0) return <h2>no post found</h2>;
-    return <Post data={data.data[0]} />;
+export default async function PostRoute({ params }: { params: PostParams }) {
+  const { slug } = await params;
+  const data = await getPostBySlug(slug);
+  if (!data.data?.length) notFound();
+  return <Post data={data.data[0]} />;
 }
 
 export async function generateStaticParams() {
-    const token = process.env.NEXT_PUBLIC_STRAPI_API_TOKEN;
-    const path = `/articles`;
-    const options = { headers: { Authorization: `Bearer ${token}` } };
-    const articleResponse = await fetchAPI(
-        path,
-        {
-            populate: ['category'],
-        },
-        options
-    );
-
-    return articleResponse.data.map(
-        (article: {
-            attributes: {
-                slug: string;
-                category: {
-                    slug: string;
-                };
-            };
-        }) => ({ slug: article.attributes.slug, category: article.attributes.slug })
-    );
+  const posts = await listPosts().catch(() => []);
+  return posts.map((p) => ({ slug: p.slug, category: p.category }));
 }
