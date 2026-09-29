@@ -1,11 +1,6 @@
 /** @type {import('next').NextConfig} */
 
 const nextConfig = {
-  // The MCP route embeds the browser-only Apps SDK source into its standalone
-  // HTML resource at runtime. Keep that package file in serverless traces.
-  outputFileTracingIncludes: {
-    '/api/mcp': ['./node_modules/@modelcontextprotocol/ext-apps/dist/src/app-with-deps.js'],
-  },
   images: {
     remotePatterns: [
       {
