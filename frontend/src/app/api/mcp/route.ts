@@ -19,15 +19,68 @@ import { baseUrl } from '@/lib/site/base-url';
  * /mcp-app inline instead of a wall of text.
  */
 
-const UI_VERSION = '2026-09-11-1';
+const UI_VERSION = '2026-09-29-1';
 const RESOURCE_URI = `ui://mattpest/app.html?v=${UI_VERSION}`;
+
+// MCP Apps uses `ui.resourceUri` (and the compatibility `ui/resourceUri`
+// key emitted by registerAppTool). ChatGPT's Apps SDK still discovers the
+// same resource through its vendor-prefixed key, so advertise both rather
+// than silently degrading to the text result in one family of hosts.
+const APP_TOOL_META = {
+  ui: { resourceUri: RESOURCE_URI },
+  'openai/outputTemplate': RESOURCE_URI,
+  'openai/widgetAccessible': true,
+} as const;
 
 async function widgetHtml(): Promise<string> {
   const origin = baseUrl();
   const res = await fetch(`${origin}/mcp-app`, { next: { revalidate: 300 } });
+  if (!res.ok) throw new Error(`Unable to render MCP App page (${res.status})`);
+
   const html = await res.text();
-  // Root-relative asset URLs must resolve against the site, not the host's sandbox.
-  return html.replace(/<head>/i, `<head><base href="${origin}/">`);
+
+  // MCP hosts execute the resource in a locked-down document. Although the
+  // resource CSP permits our origin, some hosts do not load Next's external
+  // hydration chunks at all. That leaves the server-rendered browser fallback
+  // visible (and explains the empty origin in that fallback). Make the app a
+  // self-contained HTML resource by embedding its initial CSS and JS.
+  const withStyles = await replaceAsync(html, /<link\b[^>]*>/gi, async (tag) => {
+    if (!/\brel=["']stylesheet["']/i.test(tag)) return tag;
+    const href = tag.match(/\bhref=["']([^"']+)["']/i)?.[1];
+    if (!href) return tag;
+    return `<style>${await fetchAsset(origin, href)}</style>`;
+  });
+
+  const withScripts = await replaceAsync(
+    withStyles,
+    /<script\b([^>]*?)\bsrc=["']([^"']+)["']([^>]*)><\/script>/gi,
+    async (_tag, before, src, after) => {
+      const attributes = `${before}${after}`.replace(/\s*(?:async|defer)(?:=["'][^"']*["'])?/gi, '');
+      const script = (await fetchAsset(origin, src)).replace(/<\/script/gi, '<\\/script');
+      return `<script${attributes}>${script}</script>`;
+    }
+  );
+
+  // Any URLs loaded later by the Next runtime should resolve to this site,
+  // rather than to the chat host's sandbox origin.
+  return withScripts.replace(/<head>/i, `<head><base href="${origin}/">`);
+}
+
+async function fetchAsset(origin: string, path: string): Promise<string> {
+  const response = await fetch(new URL(path, origin));
+  if (!response.ok) throw new Error(`Unable to inline MCP App asset ${path} (${response.status})`);
+  return response.text();
+}
+
+async function replaceAsync(
+  value: string,
+  pattern: RegExp,
+  replacer: (match: string, ...groups: string[]) => Promise<string>
+): Promise<string> {
+  const matches = [...value.matchAll(pattern)];
+  const replacements = await Promise.all(matches.map((match) => replacer(match[0], ...match.slice(1))));
+  let index = 0;
+  return value.replace(pattern, () => replacements[index++]);
 }
 
 const handler = createMcpHandler(
@@ -52,6 +105,17 @@ const handler = createMcpHandler(
                     resourceDomains: [origin, 'https://elasticbeanstalk-us-east-2-641171614455.s3.us-east-2.amazonaws.com'],
                   },
                 },
+                // Compatibility metadata for ChatGPT hosts that have not yet
+                // switched resource policy discovery to the MCP Apps shape.
+                'openai/widgetCSP': {
+                  connect_domains: [origin],
+                  resource_domains: [
+                    origin,
+                    'https://elasticbeanstalk-us-east-2-641171614455.s3.us-east-2.amazonaws.com',
+                  ],
+                },
+                'openai/widgetDomain': origin,
+                'openai/widgetDescription': "Matt Pest's interactive site content",
               },
             },
           ],
@@ -107,7 +171,7 @@ const handler = createMcpHandler(
         description: 'Read a post in full (markdown). Renders as an article card in hosts that support MCP Apps.',
         inputSchema: z.object({ slug: z.string().describe('Post slug from search_posts / list_posts') }),
         annotations: { readOnlyHint: true, openWorldHint: false },
-        _meta: { ui: { resourceUri: RESOURCE_URI } },
+        _meta: APP_TOOL_META,
       },
       async ({ slug }) => {
         const post = await getPost(slug);
@@ -127,7 +191,7 @@ const handler = createMcpHandler(
         description: 'Structured résumé: experience, highlights, skills, education, contact. Renders as a card in MCP Apps hosts.',
         inputSchema: z.object({}),
         annotations: { readOnlyHint: true, openWorldHint: false },
-        _meta: { ui: { resourceUri: RESOURCE_URI } },
+        _meta: APP_TOOL_META,
       },
       async () => ({
         content: [{ type: 'text', text: resumeToText() }],
