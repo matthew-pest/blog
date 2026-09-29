@@ -112,6 +112,11 @@ export default function AgentDock({ lang }: { lang: string }) {
         s.setMood('acting');
         router.push(safe);
         addToolOutput({ tool: 'navigate', toolCallId: toolCall.toolCallId, output: { ok: true, path: safe } });
+      } else if (toolCall.toolName === 'setBackground') {
+        const { variant } = toolCall.input as { variant: 'grain' | 'contour' };
+        s.setMood('acting');
+        s.setFieldVariant(variant);
+        addToolOutput({ tool: 'setBackground', toolCallId: toolCall.toolCallId, output: { ok: true, variant } });
       } else if (toolCall.toolName === 'highlight') {
         const { text } = toolCall.input as { text: string };
         s.setMood('acting');

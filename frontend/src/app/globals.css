@@ -177,10 +177,12 @@ body {
   opacity: 0;
 }
 
+/* The shaders are already dark; the scrim only settles the lower half so
+   long-form text sits on something calm. */
 .ambient-field__scrim {
   position: absolute;
   inset: 0;
-  background: linear-gradient(to bottom, oklch(0.13 0.012 285 / 25%), oklch(0.13 0.012 285 / 62%));
+  background: linear-gradient(to bottom, transparent 30%, oklch(0.13 0.012 285 / 45%));
 }
 
 /* ------------------------------------------------------------------ */

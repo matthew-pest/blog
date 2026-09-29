@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { ArrowUpRight, Compass, FileText, Globe, Highlighter, Ticket, User } from 'lucide-react';
+import { ArrowUpRight, Compass, FileText, Globe, Highlighter, Sparkles, Ticket, User } from 'lucide-react';
 import type { ChatStatus } from 'ai';
 import { cn } from '@/lib/utils';
 import type { AgentUIMessage } from '@/lib/ai/types';
@@ -163,6 +163,13 @@ function PartView({ part, lang, streaming, role }: { part: Part; lang: string; s
       return (
         <ActionChip icon={<Compass className="size-3.5" />} done={part.state === 'output-available'}>
           Opened <code className="font-mono text-[0.7rem]">{part.input?.path}</code>
+        </ActionChip>
+      );
+
+    case 'tool-setBackground':
+      return (
+        <ActionChip icon={<Sparkles className="size-3.5" />} done={part.state === 'output-available'}>
+          Background → {part.input?.variant === 'contour' ? 'Contour Field' : 'Slate Grain'}
         </ActionChip>
       );
 

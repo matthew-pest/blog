@@ -128,6 +128,13 @@ export const agentTools = {
     inputSchema: z.object({ text: z.string().describe('Verbatim passage to highlight') }),
     outputSchema: z.object({ ok: z.boolean(), reason: z.string().optional() }),
   }),
+
+  setBackground: tool({
+    description:
+      "Switch the site's ambient WebGPU background. 'grain' is Slate Grain (one soft glow, film grain — the calm default); 'contour' is Contour Field (topographic iso-lines that tighten when you think). Use when the visitor asks to change, switch, or try the background.",
+    inputSchema: z.object({ variant: z.enum(['grain', 'contour']) }),
+    outputSchema: z.object({ ok: z.boolean(), variant: z.enum(['grain', 'contour']) }),
+  }),
 };
 
 export type AgentToolSet = typeof agentTools;

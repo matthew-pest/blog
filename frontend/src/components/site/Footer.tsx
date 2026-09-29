@@ -1,6 +1,7 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import { RESUME } from '@/lib/site/resume';
+import FieldToggle from './FieldToggle';
 
 export default function Footer({
   lang,
@@ -54,6 +55,7 @@ export default function Footer({
       </div>
       <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-5 pb-10 text-xs text-muted-foreground">
         <span>© {new Date().getFullYear()} Matt Pest</span>
+        <FieldToggle />
         <span className="font-mono">Next.js 16 · AI SDK 7 · Vercel AI Gateway · vgpu · MCP Apps · Strapi</span>
       </div>
     </footer>

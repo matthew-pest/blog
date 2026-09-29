@@ -15,6 +15,7 @@ function GithubMark({ className }: { className?: string }) {
 }
 import { cn } from '@/lib/utils';
 import { useAgentStore } from '@/lib/agent-state';
+import FieldToggle from './FieldToggle';
 
 export default function Nav({
   lang,
@@ -91,6 +92,7 @@ export default function Nav({
         </nav>
 
         <div className="flex items-center gap-1.5">
+          <FieldToggle compact className="hidden sm:grid" />
           <a
             href="https://github.com/matthew-pest"
             target="_blank"

@@ -14,7 +14,8 @@ src/
     api/mcp/route.ts      the site as an MCP server, with MCP Apps (ui://) support
     mcp-app/              the widget MCP hosts render in a sandboxed iframe
   components/
-    ambient/              vgpu WebGPU field (field.wgsl, start-field.ts, AmbientField.tsx)
+    ambient/              vgpu WebGPU field — two shaders (grain.wgsl, contour.wgsl) over
+                          field-common.wgsl; start-field.ts runs them, AmbientField.tsx mounts it
     agent/                ⌘K dock, message part renderers, page context, highlight
     site/                 nav, footer, cards, buttons
     ai-elements/, ui/     AI Elements + shadcn/ui (radix style)
@@ -49,8 +50,12 @@ WebGPU is required for the ambient field (Chrome/Edge/Safari 18+); everything el
 degrades to a static gradient. Shaders are validated headlessly:
 
 ```bash
-npx vgpu check src/components/ambient/field.wgsl --require-validation
+npx vgpu check src/components/ambient/grain.wgsl --require-validation
+npx vgpu check src/components/ambient/contour.wgsl --require-validation
 ```
+
+Visitors pick the shader with the toggle in the nav or footer (remembered in
+`localStorage`), and the agent can switch it too via the `setBackground` tool.
 
 ## Models
 

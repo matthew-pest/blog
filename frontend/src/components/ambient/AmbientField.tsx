@@ -1,8 +1,8 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { moodTargets, useAgentStore } from '@/lib/agent-state';
-import type { FieldTargets } from './start-field';
+import { moodTargets, readStoredFieldVariant, useAgentStore } from '@/lib/agent-state';
+import type { FieldHandle, FieldTargets } from './start-field';
 import { highlightPassage } from '@/components/agent/highlight';
 
 // Dev-only handle for driving the field/highlighter from the console or tests.
@@ -15,13 +15,22 @@ type Mode = 'probing' | 'webgpu' | 'fallback';
 /**
  * Full-viewport WebGPU background that reacts to the agent and the visitor.
  *
- * Falls back to a static CSS gradient when WebGPU is missing, and renders a
- * single still frame when the visitor prefers reduced motion.
+ * Two shader variants (Slate Grain, Contour Field) share one runtime; the
+ * visitor's choice lives in the store and localStorage. Falls back to a static
+ * CSS gradient when WebGPU is missing, and renders single still frames when
+ * the visitor prefers reduced motion.
  */
 export default function AmbientField() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [mode, setMode] = useState<Mode>('probing');
   const [ready, setReady] = useState(false);
+  const variant = useAgentStore((s) => s.fieldVariant);
+
+  // Apply the visitor's remembered variant after hydration.
+  useEffect(() => {
+    const stored = readStoredFieldVariant();
+    if (stored && stored !== useAgentStore.getState().fieldVariant) useAgentStore.setState({ fieldVariant: stored });
+  }, []);
 
   // Pointer → store (throttled by rAF via the browser's own event cadence).
   useEffect(() => {
@@ -41,6 +50,8 @@ export default function AmbientField() {
     };
   }, []);
 
+  const handleRef = useRef<FieldHandle | null>(null);
+
   useEffect(() => {
     if (typeof navigator === 'undefined' || !('gpu' in navigator)) {
       setMode('fallback');
@@ -57,6 +68,7 @@ export default function AmbientField() {
       const { energy, focus } = moodTargets(s.mood);
       const ripple = s.rippleAt == null ? -1 : (performance.now() - s.rippleAt) / 1000;
       return {
+        variant: s.fieldVariant,
         energy,
         focus,
         hue: s.hue,
@@ -68,11 +80,10 @@ export default function AmbientField() {
       };
     };
 
-    let dispose: (() => void) | undefined;
     let cancelled = false;
     import('./start-field').then(({ startField }) => {
       if (cancelled) return;
-      dispose = startField(canvas, {
+      handleRef.current = startField(canvas, {
         getTargets,
         still,
         onReady: () => setReady(true),
@@ -80,12 +91,18 @@ export default function AmbientField() {
     });
     return () => {
       cancelled = true;
-      dispose?.();
+      handleRef.current?.dispose();
+      handleRef.current = null;
     };
   }, []);
 
+  // In still mode the loop isn't running, so redraw when the variant changes.
+  useEffect(() => {
+    handleRef.current?.refresh();
+  }, [variant]);
+
   return (
-    <div aria-hidden className="ambient-field" data-ready={ready} data-mode={mode}>
+    <div aria-hidden className="ambient-field" data-ready={ready} data-mode={mode} data-variant={variant}>
       {mode !== 'fallback' && <canvas ref={canvasRef} className="ambient-field__canvas" />}
       <div className="ambient-field__fallback" />
       <div className="ambient-field__scrim" />

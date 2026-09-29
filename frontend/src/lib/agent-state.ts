@@ -28,6 +28,26 @@ export const CATEGORY_HUE: Record<string, number> = {
   default: 0.55,
 };
 
+/** The two ambient-field shaders a visitor can choose between. */
+export type FieldVariant = 'grain' | 'contour';
+export const FIELD_VARIANTS: readonly FieldVariant[] = ['grain', 'contour'];
+export const FIELD_LABELS: Record<FieldVariant, string> = { grain: 'Slate Grain', contour: 'Contour Field' };
+const FIELD_STORAGE_KEY = 'mp.field';
+
+export function isFieldVariant(v: unknown): v is FieldVariant {
+  return typeof v === 'string' && (FIELD_VARIANTS as readonly string[]).includes(v);
+}
+
+/** The visitor's remembered choice, or null. Safe to call during SSR. */
+export function readStoredFieldVariant(): FieldVariant | null {
+  try {
+    const v = typeof window !== 'undefined' ? window.localStorage.getItem(FIELD_STORAGE_KEY) : null;
+    return isFieldVariant(v) ? v : null;
+  } catch {
+    return null;
+  }
+}
+
 export interface PageContext {
   path: string;
   title: string;
@@ -53,8 +73,12 @@ export interface AgentState {
   deep: boolean;
   /** Draft text handed to the dock (e.g. from a "try it" button). */
   draft: string | null;
+  /** Which ambient shader is drawn behind the page. Persisted per visitor. */
+  fieldVariant: FieldVariant;
 
   setMood: (mood: Mood) => void;
+  setFieldVariant: (variant: FieldVariant) => void;
+  cycleFieldVariant: () => void;
   setHue: (hue: number) => void;
   setPointer: (x: number, y: number, active?: boolean) => void;
   ripple: (origin?: [number, number]) => void;
@@ -66,7 +90,7 @@ export interface AgentState {
   setDraft: (draft: string | null) => void;
 }
 
-export const useAgentStore = create<AgentState>((set) => ({
+export const useAgentStore = create<AgentState>((set, get) => ({
   mood: 'idle',
   hue: CATEGORY_HUE.default,
   pointer: [0.5, 0.5],
@@ -78,8 +102,22 @@ export const useAgentStore = create<AgentState>((set) => ({
   dockOpen: false,
   deep: false,
   draft: null,
+  // Server and first client render agree on the default; AmbientField applies
+  // the stored choice after mount so hydration never mismatches.
+  fieldVariant: 'grain',
 
   setMood: (mood) => set({ mood }),
+  setFieldVariant: (fieldVariant) => {
+    try {
+      window.localStorage.setItem(FIELD_STORAGE_KEY, fieldVariant);
+    } catch {}
+    set({ fieldVariant });
+  },
+  cycleFieldVariant: () => {
+    const s = get();
+    const next = FIELD_VARIANTS[(FIELD_VARIANTS.indexOf(s.fieldVariant) + 1) % FIELD_VARIANTS.length];
+    s.setFieldVariant(next);
+  },
   setHue: (hue) => set({ hue }),
   setPointer: (x, y, active = true) => set({ pointer: [x, y], pointerActive: active }),
   ripple: (origin) =>
