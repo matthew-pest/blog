@@ -7,7 +7,7 @@ import {
   toUIMessageStream,
 } from 'ai';
 import { agentTools } from '@/lib/ai/tools';
-import { buildSystemPrompt } from '@/lib/ai/system';
+import { buildSystemPrompt, describePage } from '@/lib/ai/system';
 import { checkRateLimit, clientIp } from '@/lib/ai/rate-limit';
 import { CATEGORY_HUE } from '@/lib/agent-state';
 import type { AgentStatus, AgentUIMessage, ChatRequestBody } from '@/lib/ai/types';
@@ -79,6 +79,20 @@ export async function POST(req: Request) {
   const system = await buildSystemPrompt(body.context, deep);
 
   const modelMessages = await convertToModelMessages(body.messages);
+
+  // The system prompt carries the page context, but a long conversation's
+  // prior can drown a change at the tail of it. Pin the current page to the
+  // latest user turn as well, where the model looks first.
+  if (body.context) {
+    const note = `[Visitor is on the ${describePage(body.context)}]`;
+    for (let i = modelMessages.length - 1; i >= 0; i--) {
+      const m = modelMessages[i];
+      if (m.role !== 'user') continue;
+      if (typeof m.content === 'string') m.content = `${note}\n${m.content}`;
+      else m.content = [{ type: 'text', text: note }, ...m.content];
+      break;
+    }
+  }
 
   const stream = createUIMessageStream<AgentUIMessage>({
     originalMessages: body.messages,

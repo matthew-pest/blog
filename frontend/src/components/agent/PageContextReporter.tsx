@@ -22,10 +22,17 @@ export default function PageContextReporter() {
     else if (rest[0] === 'resume') ctx.kind = 'resume';
     else ctx.kind = 'page';
 
-    // Title lands after hydration; read it on the next tick.
-    const t = window.setTimeout(() => {
-      setPage({ ...ctx, title: document.title.replace(/\s·\sMatt Pest$/, ''), postTitle: ctx.kind === 'post' ? document.title.replace(/\s·\sMatt Pest$/, '') : undefined });
-    }, 0);
+    // Publish the route immediately, then fill the title in once Next has set
+    // it (on client navigations that lands a little after the route change).
+    const withTitle = () => {
+      const title = document.title.replace(/\s·\sMatt Pest$/, '');
+      setPage({ ...ctx, title, postTitle: ctx.kind === 'post' ? title : undefined });
+    };
+    withTitle();
+    const titleEl = document.querySelector('title');
+    const observer = titleEl ? new MutationObserver(withTitle) : null;
+    observer?.observe(titleEl!, { childList: true, characterData: true, subtree: true });
+    const t = window.setTimeout(withTitle, 400);
 
     const hue =
       ctx.kind === 'post' || (ctx.kind === 'blog-index' && ctx.category)
@@ -37,7 +44,10 @@ export default function PageContextReporter() {
     setHighlight(null);
     if (typeof CSS !== 'undefined' && 'highlights' in CSS) (CSS as any).highlights.delete('agent-highlight');
 
-    return () => window.clearTimeout(t);
+    return () => {
+      window.clearTimeout(t);
+      observer?.disconnect();
+    };
   }, [pathname, setPage, setHue, setHighlight]);
 
   useEffect(() => {
