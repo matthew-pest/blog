@@ -47,11 +47,29 @@ ${deep ? '\nDeep mode: the visitor asked for your most careful answer. Think it 
 
   const ctx = context
     ? `\n\nVisitor context (right now):
-- Page: ${context.kind} at ${context.path}${context.title ? ` — "${context.title}"` : ''}${
+- Page: ${describePage(context)}${
         context.postSlug ? `\n- Reading post slug: ${context.postSlug} (category: ${context.category ?? 'unknown'})` : ''
       }${context.selection ? `\n- Text they have selected: "${context.selection.slice(0, 500)}"` : ''}
-If they say "this post", "this page", or "here", they mean the above.`
+This context is authoritative and refreshed on every message — it overrides anything earlier in the conversation about where the visitor is. If they say "this post", "this page", or "here", they mean the page above. If they ask about "this post" while not on a post, ask which one or offer the index; never assume it's a post from earlier in the chat. If highlight reports the passage isn't on the current page, don't retry — navigate there first or tell the visitor.`
     : '';
 
   return stable + ctx;
+}
+
+/** One-line human description of where the visitor is, e.g. `post "Title" at /en/blog/...`. */
+export function describePage(context: PageContext): string {
+  const kind =
+    context.kind === 'blog-index'
+      ? context.category
+        ? `blog index for "${context.category}"`
+        : 'blog index'
+      : context.kind === 'home'
+        ? 'home page'
+        : context.kind === 'resume'
+          ? 'résumé page'
+          : context.kind === 'post'
+            ? 'blog post'
+            : 'page';
+  const title = context.title || context.postTitle;
+  return `${kind}${title ? ` "${title}"` : ''} at ${context.path}`;
 }

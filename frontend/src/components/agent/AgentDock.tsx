@@ -126,10 +126,17 @@ export default function AgentDock({ lang }: { lang: string }) {
           const found = highlightPassage(text);
           if (found || attempts++ > 8) {
             s.setHighlight(found ? text : null);
+            const page = useAgentStore.getState().page;
             addToolOutput({
               tool: 'highlight',
               toolCallId: toolCall.toolCallId,
-              output: found ? { ok: true } : { ok: false, reason: 'Passage not found on the current page.' },
+              output: found
+                ? { ok: true }
+                : {
+                    ok: false,
+                    reason: 'Passage not found on the current page. Do not retry; navigate to the right page first or tell the visitor.',
+                    currentPage: `${page.kind}${page.title ? ` "${page.title}"` : ''} at ${page.path}`,
+                  },
             });
           } else {
             window.setTimeout(tryHighlight, 250);

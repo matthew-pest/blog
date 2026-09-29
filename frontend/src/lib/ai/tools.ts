@@ -126,7 +126,11 @@ export const agentTools = {
     description:
       'Scroll to and highlight an exact passage on the page the visitor is currently viewing. Quote the passage verbatim (8–40 words). Only works for text on the current page — navigate first if needed.',
     inputSchema: z.object({ text: z.string().describe('Verbatim passage to highlight') }),
-    outputSchema: z.object({ ok: z.boolean(), reason: z.string().optional() }),
+    outputSchema: z.object({
+      ok: z.boolean(),
+      reason: z.string().optional(),
+      currentPage: z.string().optional().describe('Where the visitor actually is, when the passage was not found'),
+    }),
   }),
 
   setBackground: tool({
