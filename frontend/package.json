@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "test:mcp-widget": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/test-mcp-widget.mjs"
   },
   "dependencies": {
     "@ai-sdk/gateway": "^4.0.78",
