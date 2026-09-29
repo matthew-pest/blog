@@ -100,6 +100,17 @@ const handler = createMcpHandler(
                     resourceDomains: [origin, 'https://elasticbeanstalk-us-east-2-641171614455.s3.us-east-2.amazonaws.com'],
                   },
                 },
+                // Compatibility metadata for ChatGPT hosts that have not yet
+                // switched resource policy discovery to the MCP Apps shape.
+                'openai/widgetCSP': {
+                  connect_domains: [origin],
+                  resource_domains: [
+                    origin,
+                    'https://elasticbeanstalk-us-east-2-641171614455.s3.us-east-2.amazonaws.com',
+                  ],
+                },
+                'openai/widgetDomain': origin,
+                'openai/widgetDescription': "Matt Pest's interactive site content",
               },
             },
           ],
