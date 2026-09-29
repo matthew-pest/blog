@@ -1,4 +1,6 @@
 import { createMcpHandler } from 'mcp-handler';
+import { readFile } from 'node:fs/promises';
+import path from 'node:path';
 import {
   RESOURCE_MIME_TYPE,
   registerAppResource,
@@ -19,68 +21,61 @@ import { baseUrl } from '@/lib/site/base-url';
  * /mcp-app inline instead of a wall of text.
  */
 
-const UI_VERSION = '2026-09-29-1';
+const UI_VERSION = '2026-09-29-2';
 const RESOURCE_URI = `ui://mattpest/app.html?v=${UI_VERSION}`;
 
-// MCP Apps uses `ui.resourceUri` (and the compatibility `ui/resourceUri`
-// key emitted by registerAppTool). ChatGPT's Apps SDK still discovers the
-// same resource through its vendor-prefixed key, so advertise both rather
-// than silently degrading to the text result in one family of hosts.
 const APP_TOOL_META = {
   ui: { resourceUri: RESOURCE_URI },
-  'openai/outputTemplate': RESOURCE_URI,
-  'openai/widgetAccessible': true,
 } as const;
 
+let widgetHtmlPromise: Promise<string> | undefined;
+
 async function widgetHtml(): Promise<string> {
-  const origin = baseUrl();
-  const res = await fetch(`${origin}/mcp-app`, { next: { revalidate: 300 } });
-  if (!res.ok) throw new Error(`Unable to render MCP App page (${res.status})`);
+  widgetHtmlPromise ??= buildWidgetHtml();
+  return widgetHtmlPromise;
+}
 
-  const html = await res.text();
-
-  // MCP hosts execute the resource in a locked-down document. Although the
-  // resource CSP permits our origin, some hosts do not load Next's external
-  // hydration chunks at all. That leaves the server-rendered browser fallback
-  // visible (and explains the empty origin in that fallback). Make the app a
-  // self-contained HTML resource by embedding its initial CSS and JS.
-  const withStyles = await replaceAsync(html, /<link\b[^>]*>/gi, async (tag) => {
-    if (!/\brel=["']stylesheet["']/i.test(tag)) return tag;
-    const href = tag.match(/\bhref=["']([^"']+)["']/i)?.[1];
-    if (!href) return tag;
-    return `<style>${await fetchAsset(origin, href)}</style>`;
-  });
-
-  const withScripts = await replaceAsync(
-    withStyles,
-    /<script\b([^>]*?)\bsrc=["']([^"']+)["']([^>]*)><\/script>/gi,
-    async (_tag, before, src, after) => {
-      const attributes = `${before}${after}`.replace(/\s*(?:async|defer)(?:=["'][^"']*["'])?/gi, '');
-      const script = (await fetchAsset(origin, src)).replace(/<\/script/gi, '<\\/script');
-      return `<script${attributes}>${script}</script>`;
-    }
+async function buildWidgetHtml(): Promise<string> {
+  const sdkPath = path.join(
+    process.cwd(),
+    'node_modules/@modelcontextprotocol/ext-apps/dist/src/app-with-deps.js'
   );
+  const sdk = await readFile(sdkPath, 'utf8');
+  const appSymbol = sdk.match(/,([\w$]+) as App};?\s*$/)?.[1];
+  if (!appSymbol) throw new Error('Unable to locate the App export in the MCP Apps browser bundle');
+  const exposedSdk = sdk.replace(/\bexport\{/, `globalThis.__McpApp=${appSymbol};export{`).replace(/<\/script/gi, '<\\/script');
 
-  // Any URLs loaded later by the Next runtime should resolve to this site,
-  // rather than to the chat host's sandbox origin.
-  return withScripts.replace(/<head>/i, `<head><base href="${origin}/">`);
+  return `<!doctype html>
+<html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<style>
+:root{color-scheme:light dark;font-family:system-ui,sans-serif}*{box-sizing:border-box}body{margin:0;padding:8px;background:transparent;color:var(--color-text-primary,currentColor)}article{max-width:680px;padding:20px;border:1px solid var(--color-border-secondary,#7775);border-radius:16px;background:var(--color-background-primary,#fff1)}.eyebrow{margin:0 0 8px;text-transform:uppercase;letter-spacing:.08em;font-size:12px;opacity:.7}h1{margin:0 0 8px;font-size:24px;line-height:1.15}p{line-height:1.5}.muted{opacity:.72}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:10px;margin:18px 0}.card{padding:12px;border:1px solid var(--color-border-secondary,#7775);border-radius:12px}.card p{margin:4px 0 0;font-size:12px}.body{max-height:320px;overflow:auto}button{padding:9px 15px;border:0;border-radius:999px;background:var(--color-background-inverse,#111);color:var(--color-text-inverse,#fff);font:inherit;cursor:pointer}.status{padding:20px;opacity:.7}
+</style></head><body><div id="root" class="status">Connecting to host…</div>
+<script type="module">${exposedSdk}
+const root=document.querySelector('#root');
+const esc=(value)=>String(value??'').replace(/[&<>"']/g,(char)=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
+const date=(value)=>new Date(value).toLocaleDateString('en-US',{year:'numeric',month:'long',day:'numeric'});
+let app;
+function open(url){app.openLink({url})}
+function render(payload){
+  if(payload?.kind==='post'){
+    const p=payload.post;
+    const paragraphs=String(p.body??'').split(/\\n{2,}/).slice(0,6).map((text)=>'<p>'+esc(text.replace(/^#+\\s*/,''))+'</p>').join('');
+    root.className='';root.innerHTML='<article><p class="eyebrow">'+esc(p.categoryName)+' · '+esc(date(p.publishedAt))+'</p><h1>'+esc(p.title)+'</h1><p class="muted">'+esc(p.description)+'</p><div class="body">'+paragraphs+'</div><button id="open">Read on mattpest.com →</button></article>';
+    document.querySelector('#open').onclick=()=>open(p.url);return;
+  }
+  if(payload?.kind==='resume'){
+    const r=payload.resume,current=r.experience?.[0]??{};
+    const highlights=(r.highlights??[]).slice(0,4).map((h)=>'<div class="card"><strong>'+esc(h.title)+'</strong><p>'+esc(h.detail)+'</p></div>').join('');
+    root.className='';root.innerHTML='<article><p class="eyebrow">Résumé · updated '+esc(r.updated)+'</p><h1>'+esc(r.name)+'</h1><p class="muted">'+esc(r.headline)+' · '+esc(r.location)+'</p><p>'+esc(r.summary)+'</p><div class="grid">'+highlights+'</div><p><strong>'+esc(current.title)+' · '+esc(current.org)+'</strong><br><span class="muted">'+esc(current.start)+' – '+esc(current.end)+'</span></p><button id="open">Full résumé →</button></article>';
+    document.querySelector('#open').onclick=()=>open(r.website+'/en/resume');return;
+  }
+  root.textContent='The tool returned no displayable content.';
 }
-
-async function fetchAsset(origin: string, path: string): Promise<string> {
-  const response = await fetch(new URL(path, origin));
-  if (!response.ok) throw new Error(`Unable to inline MCP App asset ${path} (${response.status})`);
-  return response.text();
-}
-
-async function replaceAsync(
-  value: string,
-  pattern: RegExp,
-  replacer: (match: string, ...groups: string[]) => Promise<string>
-): Promise<string> {
-  const matches = [...value.matchAll(pattern)];
-  const replacements = await Promise.all(matches.map((match) => replacer(match[0], ...match.slice(1))));
-  let index = 0;
-  return value.replace(pattern, () => replacements[index++]);
+app=new globalThis.__McpApp({name:'mattpest.com',version:'1.0.0'},{});
+app.ontoolresult=(result)=>render(result.structuredContent);
+root.textContent='Waiting for the tool result…';
+try{await app.connect()}catch(error){root.textContent='Unable to connect to the host: '+error.message}
+</script></body></html>`;
 }
 
 const handler = createMcpHandler(
