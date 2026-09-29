@@ -241,7 +241,7 @@ export default function AgentDock({ lang }: { lang: string }) {
             <div>
               <p className="text-sm font-medium leading-none">Site agent</p>
               <p className="mt-1 text-[0.7rem] text-muted-foreground">
-                {statusLabel ? <Shimmer>{statusLabel}</Shimmer> : deep ? 'Claude Opus · deep mode' : 'Claude via Vercel AI Gateway'}
+                {statusLabel ? <Shimmer as="span">{statusLabel}</Shimmer> : deep ? 'Claude Opus · deep mode' : 'Claude via Vercel AI Gateway'}
               </p>
             </div>
           </div>
