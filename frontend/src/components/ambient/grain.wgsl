@@ -1,9 +1,11 @@
-// Slate Grain: near-black, one soft accent glow adrift, a whisper of film
-// grain. Nothing warps. Energy brightens the glow, focus widens it, a
-// search sends a faint ring outward, the pointer carries a dim complement.
+// Slate Grain: near-black, one soft accent glow adrift, and a very light,
+// very slow particle field sliding across it. Nothing warps, nothing
+// flickers. Energy brightens the glow and the particles, focus widens the
+// glow, a search flashes it and sends a faint ring outward, and the pointer
+// carries a dim complement.
 
 import { fbmSimplex2d } from "@vgpu/wgsl-std/noise/simplex";
-import { Params, ink, accent, centred, grain, rippleRing, vignette } from "./field-common.wgsl";
+import { Params, ink, accent, centred, grain, particles, rippleRing, vignette } from "./field-common.wgsl";
 
 @group(0) @binding(0) var<uniform> params: Params;
 
@@ -33,8 +35,13 @@ import { Params, ink, accent, centred, grain, rippleRing, vignette } from "./fie
   col += accent(params.hue) * glow * strength;
   col += accent(params.hue + 0.5) * pointerGlow;
   col += vec3f(0.6, 0.8, 1.0) * rippleRing(p, params.rippleOrigin, params.aspect, params.ripple) * 0.10;
+
+  // Particles: dim white, faintly tinted by the accent, a touch livelier with energy.
+  let dots = particles(uv, params.aspect, t) * (0.16 + params.energy * 0.14);
+  col += mix(vec3f(0.85, 0.85, 0.92), accent(params.hue), 0.35) * dots;
+
   col *= mix(0.72, 1.0, vignette(p));
-  col += vec3f(grain(uv, params.aspect, t, 0.035));
+  col += vec3f(grain(uv, params.aspect, 0.018));
   col *= params.intensity;
   return vec4f(clamp(col, vec3f(0.0), vec3f(1.0)), 1.0);
 }

@@ -37,11 +37,33 @@ export fn centred(uv: vec2f, aspect: f32) -> vec2f {
   return (uv - 0.5) * vec2f(aspect, 1.0);
 }
 
-// Film grain quantised to ~24 updates/s so it flickers like film, not static.
-export fn grain(uv: vec2f, aspect: f32, time: f32, amount: f32) -> f32 {
-  let cell = floor(uv * vec2f(aspect, 1.0) * 720.0);
-  let g = hash2(cell + floor(time * 24.0) * 7.31).x;
-  return (g - 0.5) * amount;
+// Static film grain for texture. No time term: it must not flicker.
+export fn grain(uv: vec2f, aspect: f32, amount: f32) -> f32 {
+  let cell = floor(uv * vec2f(aspect, 1.0) * 900.0);
+  return (hash2(cell).x - 0.5) * amount;
+}
+
+// One layer of a sparse dot field that slides slowly across the screen and
+// twinkles. `cells` sets density, `drift` the direction and speed.
+fn dotLayer(q: vec2f, t: f32, cells: f32, drift: vec2f, threshold: f32) -> f32 {
+  let p = q * cells + drift * t;
+  let cell = floor(p);
+  let h = hash2(cell);
+  let lit = step(threshold, h.x);
+  // Dot sits at a hashed offset inside its cell so the lattice never shows.
+  let centre = hash2(cell + 17.3) * 0.6 + 0.2;
+  let d = length(fract(p) - centre);
+  let dot = smoothstep(0.32, 0.05, d);
+  let twinkle = 0.55 + 0.45 * sin(t * 0.7 + h.y * 6.2832);
+  return lit * dot * twinkle;
+}
+
+// A very light, very slow particle field: two parallax layers of dots.
+export fn particles(uv: vec2f, aspect: f32, t: f32) -> f32 {
+  let q = uv * vec2f(aspect, 1.0);
+  let far = dotLayer(q, t, 110.0, vec2f(0.9, -0.5), 0.972) * 0.55;
+  let near = dotLayer(q + 0.37, t, 62.0, vec2f(1.6, -0.9), 0.982);
+  return far + near;
 }
 
 // A soft ring expanding from `origin` after a web search. t < 0 means none.
