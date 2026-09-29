@@ -18,12 +18,16 @@ export type Mood =
   | 'acting'
   | 'error';
 
-/** Hue on the field's palette wheel (0..1) per blog category. */
+/**
+ * Hue on the field's palette wheel (0..1) per blog category. The shaders'
+ * `accent()` adds 0.2 before mapping to HSV, so: 0.55 → brand violet,
+ * 0.9 → amber, 0.41 → blue, 0.62 → purple, 0.717 → rose, 0.3 → teal.
+ */
 export const CATEGORY_HUE: Record<string, number> = {
   ai: 0.62,
-  physics: 0.1,
-  tech: 0.42,
-  audiophile: 0.86,
+  physics: 0.9,
+  tech: 0.41,
+  audiophile: 0.717,
   resume: 0.3,
   default: 0.55,
 };

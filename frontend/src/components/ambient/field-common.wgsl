@@ -43,27 +43,25 @@ export fn grain(uv: vec2f, aspect: f32, amount: f32) -> f32 {
   return (hash2(cell).x - 0.5) * amount;
 }
 
-// One layer of a sparse dot field that slides slowly across the screen and
-// twinkles. `cells` sets density, `drift` the direction and speed.
-fn dotLayer(q: vec2f, t: f32, cells: f32, drift: vec2f, threshold: f32) -> f32 {
+// One layer of dense, fine grain that crawls across the screen: about half
+// the cells are lit at random low brightness, and the whole sheet slides
+// at `drift` cells per second. Not a starfield — a mist.
+fn mistLayer(q: vec2f, t: f32, cells: f32, drift: vec2f) -> f32 {
   let p = q * cells + drift * t;
-  let cell = floor(p);
-  let h = hash2(cell);
-  let lit = step(threshold, h.x);
-  // Dot sits at a hashed offset inside its cell so the lattice never shows.
-  let centre = hash2(cell + 17.3) * 0.6 + 0.2;
-  let d = length(fract(p) - centre);
-  let dot = smoothstep(0.32, 0.05, d);
-  let twinkle = 0.55 + 0.45 * sin(t * 0.7 + h.y * 6.2832);
-  return lit * dot * twinkle;
+  let h = hash2(floor(p));
+  let lit = step(0.5, h.x);
+  // Soften each speck so the sheet reads as haze rather than pixels.
+  let d = length(fract(p) - 0.5);
+  let speck = smoothstep(0.7, 0.2, d);
+  return lit * h.y * speck;
 }
 
-// A very light, very slow particle field: two parallax layers of dots.
-export fn particles(uv: vec2f, aspect: f32, t: f32) -> f32 {
+// A very light, very slow particle field: two parallax sheets of fine mist.
+export fn mist(uv: vec2f, aspect: f32, t: f32) -> f32 {
   let q = uv * vec2f(aspect, 1.0);
-  let far = dotLayer(q, t, 110.0, vec2f(0.9, -0.5), 0.972) * 0.55;
-  let near = dotLayer(q + 0.37, t, 62.0, vec2f(1.6, -0.9), 0.982);
-  return far + near;
+  let far = mistLayer(q, t, 560.0, vec2f(2.4, -1.6));
+  let near = mistLayer(q + 0.29, t, 330.0, vec2f(4.2, -2.6));
+  return far * 0.6 + near * 0.5;
 }
 
 // A soft ring expanding from `origin` after a web search. t < 0 means none.

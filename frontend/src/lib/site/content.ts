@@ -44,6 +44,7 @@ export interface Brand {
   navbarLogoText: string;
   footerLogoUrl: string | null;
   footerLogoText: string;
+  faviconUrl: string | null;
 }
 
 /**
@@ -57,6 +58,7 @@ const BRAND_FALLBACK: Brand = {
   navbarLogoText: "Hi I'm Matt",
   footerLogoUrl: 'https://elasticbeanstalk-us-east-2-641171614455.s3.us-east-2.amazonaws.com/footer_logo_b3ed876957.gif',
   footerLogoText: 'Matt Pest',
+  faviconUrl: 'https://elasticbeanstalk-us-east-2-641171614455.s3.us-east-2.amazonaws.com/mplogo_a591bd303e.png',
 };
 
 export async function getBrand(): Promise<Brand> {
@@ -66,6 +68,7 @@ export async function getBrand(): Promise<Brand> {
       {
         locale: 'en',
         populate: {
+          favicon: '*',
           navbar: { populate: { navbarLogo: { populate: '*' } } },
           footer: { populate: { footerLogo: { populate: '*' } } },
         },
@@ -80,6 +83,7 @@ export async function getBrand(): Promise<Brand> {
       navbarLogoText: navbarLogo?.logoText ?? BRAND_FALLBACK.navbarLogoText,
       footerLogoUrl: footerLogo?.logoImg?.data?.attributes?.url ?? BRAND_FALLBACK.footerLogoUrl,
       footerLogoText: footerLogo?.logoText ?? BRAND_FALLBACK.footerLogoText,
+      faviconUrl: a?.favicon?.data?.attributes?.url ?? BRAND_FALLBACK.faviconUrl,
     };
   } catch {
     return BRAND_FALLBACK;

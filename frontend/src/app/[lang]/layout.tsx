@@ -12,18 +12,22 @@ import { getBrand } from '@/lib/site/content';
 
 const SITE = 'https://www.mattpest.com';
 
-export const metadata: Metadata = {
-  metadataBase: new URL(SITE),
-  title: { default: 'Matt Pest', template: '%s · Matt Pest' },
-  description:
-    'Principal AI & data architect in Chicago. Essays on physics, AI and engineering — and a resident agent that reads them, opens the résumé, and searches the web.',
-  openGraph: {
-    type: 'website',
-    siteName: 'Matt Pest',
-    title: 'Matt Pest',
-    description: 'A personal site with an agent in it.',
-  },
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const { faviconUrl } = await getBrand();
+  return {
+    metadataBase: new URL(SITE),
+    title: { default: 'Matt Pest', template: '%s · Matt Pest' },
+    description:
+      'Principal AI & data architect in Chicago. Essays on physics, AI and engineering — and a resident agent that reads them, opens the résumé, and searches the web.',
+    icons: faviconUrl ? { icon: faviconUrl, apple: faviconUrl } : undefined,
+    openGraph: {
+      type: 'website',
+      siteName: 'Matt Pest',
+      title: 'Matt Pest',
+      description: 'A personal site with an agent in it.',
+    },
+  };
+}
 
 export const viewport: Viewport = {
   themeColor: '#0b0b10',
