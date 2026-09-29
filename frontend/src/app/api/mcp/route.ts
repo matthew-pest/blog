@@ -22,6 +22,16 @@ import { baseUrl } from '@/lib/site/base-url';
 const UI_VERSION = '2026-09-11-1';
 const RESOURCE_URI = `ui://mattpest/app.html?v=${UI_VERSION}`;
 
+// MCP Apps uses `ui.resourceUri` (and the compatibility `ui/resourceUri`
+// key emitted by registerAppTool). ChatGPT's Apps SDK still discovers the
+// same resource through its vendor-prefixed key, so advertise both rather
+// than silently degrading to the text result in one family of hosts.
+const APP_TOOL_META = {
+  ui: { resourceUri: RESOURCE_URI },
+  'openai/outputTemplate': RESOURCE_URI,
+  'openai/widgetAccessible': true,
+} as const;
+
 async function widgetHtml(): Promise<string> {
   const origin = baseUrl();
   const res = await fetch(`${origin}/mcp-app`, { next: { revalidate: 300 } });
@@ -52,6 +62,17 @@ const handler = createMcpHandler(
                     resourceDomains: [origin, 'https://elasticbeanstalk-us-east-2-641171614455.s3.us-east-2.amazonaws.com'],
                   },
                 },
+                // Compatibility metadata for ChatGPT hosts that have not yet
+                // switched resource policy discovery to the MCP Apps shape.
+                'openai/widgetCSP': {
+                  connect_domains: [origin],
+                  resource_domains: [
+                    origin,
+                    'https://elasticbeanstalk-us-east-2-641171614455.s3.us-east-2.amazonaws.com',
+                  ],
+                },
+                'openai/widgetDomain': origin,
+                'openai/widgetDescription': "Matt Pest's interactive site content",
               },
             },
           ],
@@ -107,7 +128,7 @@ const handler = createMcpHandler(
         description: 'Read a post in full (markdown). Renders as an article card in hosts that support MCP Apps.',
         inputSchema: z.object({ slug: z.string().describe('Post slug from search_posts / list_posts') }),
         annotations: { readOnlyHint: true, openWorldHint: false },
-        _meta: { ui: { resourceUri: RESOURCE_URI } },
+        _meta: APP_TOOL_META,
       },
       async ({ slug }) => {
         const post = await getPost(slug);
@@ -127,7 +148,7 @@ const handler = createMcpHandler(
         description: 'Structured résumé: experience, highlights, skills, education, contact. Renders as a card in MCP Apps hosts.',
         inputSchema: z.object({}),
         annotations: { readOnlyHint: true, openWorldHint: false },
-        _meta: { ui: { resourceUri: RESOURCE_URI } },
+        _meta: APP_TOOL_META,
       },
       async () => ({
         content: [{ type: 'text', text: resumeToText() }],

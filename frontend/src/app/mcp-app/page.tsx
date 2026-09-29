@@ -29,23 +29,20 @@ export default function McpAppPage() {
 }
 
 function Widget() {
+  const [payload, setPayload] = useState<Payload | null>(null);
   const { app, isConnected, error } = useApp({
     appInfo: { name: 'mattpest.com', version: '1.0.0' },
     capabilities: {},
+    // Tool-result is a one-shot notification. Register before connect() so a
+    // fast host cannot deliver it between the handshake and React's effect.
+    onAppCreated: (createdApp) => {
+      createdApp.ontoolresult = (result) => {
+        const sc = (result as { structuredContent?: Payload }).structuredContent;
+        if (sc) setPayload(sc);
+      };
+    },
   });
   useHostStyleVariables(app);
-  const [payload, setPayload] = useState<Payload | null>(null);
-
-  useEffect(() => {
-    if (!app) return;
-    app.ontoolresult = (result) => {
-      const sc = (result as { structuredContent?: Payload }).structuredContent;
-      if (sc) setPayload(sc);
-    };
-    return () => {
-      app.ontoolresult = undefined;
-    };
-  }, [app]);
 
   if (error) return <p className="text-sm text-destructive">Widget error: {error.message}</p>;
   if (!payload) {
