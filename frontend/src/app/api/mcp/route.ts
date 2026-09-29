@@ -21,11 +21,18 @@ import { baseUrl } from '@/lib/site/base-url';
  * /mcp-app inline instead of a wall of text.
  */
 
-const UI_VERSION = '2026-09-29-2';
+const UI_VERSION = '2026-09-29-3';
 const RESOURCE_URI = `ui://mattpest/app.html?v=${UI_VERSION}`;
 
+// registerAppTool advertises the standard MCP Apps resource link from `ui`,
+// including its flattened compatibility form. ChatGPT still discovers a
+// component from the Apps SDK-specific outputTemplate key, however. Keep both
+// on the descriptor: omitting either makes the same tool render as plain text
+// in one of the two host families.
 const APP_TOOL_META = {
   ui: { resourceUri: RESOURCE_URI },
+  'openai/outputTemplate': RESOURCE_URI,
+  'openai/widgetAccessible': true,
 } as const;
 
 let widgetHtmlPromise: Promise<string> | undefined;
