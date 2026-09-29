@@ -216,15 +216,17 @@ export default function AgentDock({ lang }: { lang: string }) {
         onClick={toggle}
         aria-label="Ask the site"
         className={cn(
-          'no-print fixed bottom-5 left-1/2 z-40 -translate-x-1/2 items-center gap-2 rounded-full pl-3 pr-4 text-sm transition-all duration-500 glass',
+          'no-print fixed bottom-5 left-1/2 z-40 -translate-x-1/2 items-center gap-2 whitespace-nowrap rounded-full pl-3 pr-4 text-sm transition-all duration-500 glass',
           open ? 'pointer-events-none translate-y-6 opacity-0' : 'flex h-11 opacity-100 hover:border-glow/40'
         )}
       >
         <span className={cn('relative grid size-6 place-items-center rounded-full bg-glow/15', busy && 'pulse-ring')}>
           <Sparkles className="size-3.5 text-glow" />
         </span>
-        <span>Ask the site</span>
-        <span className="kbd">⌘K</span>
+        <span>
+          Ask<span className="hidden sm:inline"> the site</span>
+        </span>
+        <span className="kbd hidden sm:inline">⌘K</span>
       </button>
 
       {/* Panel */}
