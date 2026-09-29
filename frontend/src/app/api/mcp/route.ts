@@ -1,57 +1,24 @@
 import { createMcpHandler } from 'mcp-handler';
-import {
-  RESOURCE_MIME_TYPE,
-  registerAppResource,
-  registerAppTool,
-} from '@modelcontextprotocol/ext-apps/server';
+import { registerAppTool } from '@modelcontextprotocol/ext-apps/server';
 import { z } from 'zod';
 import { getPost, listPosts, searchPosts } from '@/lib/site/content';
 import { PROJECTS } from '@/lib/site/projects';
 import { RESUME, resumeToText } from '@/lib/site/resume';
 import { baseUrl } from '@/lib/site/base-url';
-import { widgetResource } from '@/lib/mcp/widget';
+import { WIDGET_TOOL_META, registerWidgetResources } from '@/lib/mcp/widget';
 
 /**
  * mattpest.com as an MCP server — with MCP Apps.
  *
  * Add `https://<site>/api/mcp` as a connector in Claude, ChatGPT, or VS Code
  * and the site's content becomes tools; `read_post` and `get_resume` carry a
- * `ui://` resource, so hosts that speak MCP Apps render the widget at
- * /mcp-app inline instead of a wall of text.
+ * `ui://` resource (see `@/lib/mcp/widget`), so hosts that speak MCP Apps
+ * render an article / résumé card inline instead of a wall of text.
  */
-
-const UI_VERSION = '2026-09-29-4';
-const RESOURCE_URI = `ui://mattpest/app.html?v=${UI_VERSION}`;
-const OPENAI_RESOURCE_URI = `ui://mattpest/app-chatgpt.html?v=${UI_VERSION}`;
-const OPENAI_RESOURCE_MIME_TYPE = 'text/html+skybridge';
-
-// Claude and other MCP Apps hosts use the standard resource MIME type. ChatGPT
-// currently fetches its outputTemplate as text/html+skybridge, so advertise a
-// second URI backed by the exact same document instead of making either host
-// guess how to interpret the other's content type.
-const APP_TOOL_META = {
-  ui: { resourceUri: RESOURCE_URI },
-  'openai/outputTemplate': OPENAI_RESOURCE_URI,
-} as const;
 
 const handler = createMcpHandler(
   (server) => {
-    const resource = (uri: string, mimeType: string) => widgetResource(uri, mimeType, baseUrl());
-
-    registerAppResource(
-      server,
-      'mattpest-widget',
-      RESOURCE_URI,
-      { mimeType: RESOURCE_MIME_TYPE },
-      async () => resource(RESOURCE_URI, RESOURCE_MIME_TYPE)
-    );
-
-    server.registerResource(
-      'mattpest-widget-chatgpt',
-      OPENAI_RESOURCE_URI,
-      { mimeType: OPENAI_RESOURCE_MIME_TYPE },
-      async () => resource(OPENAI_RESOURCE_URI, OPENAI_RESOURCE_MIME_TYPE)
-    );
+    registerWidgetResources(server, baseUrl);
 
     server.registerTool(
       'search_posts',
@@ -101,7 +68,7 @@ const handler = createMcpHandler(
         description: 'Read a post in full (markdown). Renders as an article card in hosts that support MCP Apps.',
         inputSchema: z.object({ slug: z.string().describe('Post slug from search_posts / list_posts') }),
         annotations: { readOnlyHint: true, openWorldHint: false },
-        _meta: APP_TOOL_META,
+        _meta: WIDGET_TOOL_META,
       },
       async ({ slug }) => {
         const post = await getPost(slug);
@@ -121,7 +88,7 @@ const handler = createMcpHandler(
         description: 'Structured résumé: experience, highlights, skills, education, contact. Renders as a card in MCP Apps hosts.',
         inputSchema: z.object({}),
         annotations: { readOnlyHint: true, openWorldHint: false },
-        _meta: APP_TOOL_META,
+        _meta: WIDGET_TOOL_META,
       },
       async () => ({
         content: [{ type: 'text', text: resumeToText() }],

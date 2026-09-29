@@ -36,7 +36,9 @@ src/
   shader reads the store every frame and glides toward the new state.
 - **Site → other agents.** `/api/mcp` exposes `search_posts`, `read_post`,
   `get_resume`, `list_projects`, `list_posts`. `read_post` and `get_resume` carry a
-  `ui://` resource, so hosts that support MCP Apps render `/mcp-app` inline.
+  `ui://` resource (a self-contained HTML document from `lib/mcp/widget.ts`), so
+  hosts that support MCP Apps (Claude, ChatGPT, VS Code) render a card inline.
+  `yarn test:mcp-widget` drives that widget with the real ext-apps host bridge.
 
 ## Run it
 
