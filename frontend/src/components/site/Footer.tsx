@@ -1,12 +1,33 @@
+import Image from 'next/image';
 import Link from 'next/link';
 import { RESUME } from '@/lib/site/resume';
 
-export default function Footer({ lang }: { lang: string }) {
+export default function Footer({
+  lang,
+  logoUrl,
+  logoText,
+}: {
+  lang: string;
+  logoUrl: string | null;
+  logoText: string;
+}) {
   return (
     <footer className="no-print relative mt-24 border-t hairline">
       <div className="mx-auto grid max-w-6xl gap-10 px-5 py-14 sm:grid-cols-2 lg:grid-cols-4">
         <div className="sm:col-span-2">
-          <p className="eyebrow">Matt Pest</p>
+          <div className="flex items-center gap-3">
+            {logoUrl && (
+              <Image
+                src={logoUrl}
+                alt=""
+                width={112}
+                height={156}
+                unoptimized
+                className="h-12 w-auto rounded-lg"
+              />
+            )}
+            <p className="eyebrow">{logoText}</p>
+          </div>
           <p className="mt-3 max-w-sm text-sm text-muted-foreground">
             Principal AI &amp; data architect in Chicago. This site is open source and speaks MCP — point your agent at{' '}
             <code className="kbd">/api/mcp</code>.

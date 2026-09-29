@@ -8,6 +8,7 @@ import Footer from '@/components/site/Footer';
 import AgentDock from '@/components/agent/AgentDock';
 import PageContextReporter from '@/components/agent/PageContextReporter';
 import { TooltipProvider } from '@/components/ui/tooltip';
+import { getBrand } from '@/lib/site/content';
 
 const SITE = 'https://www.mattpest.com';
 
@@ -39,6 +40,7 @@ export default async function RootLayout({
   params: LayoutParams;
 }) {
   const { lang } = await params;
+  const brand = await getBrand();
 
   return (
     <html lang={lang} className={`dark ${GeistSans.variable} ${GeistMono.variable}`} suppressHydrationWarning>
@@ -54,11 +56,11 @@ export default async function RootLayout({
         <TooltipProvider delayDuration={300}>
           <AmbientField />
           <PageContextReporter />
-          <Nav lang={lang} />
+          <Nav lang={lang} logoUrl={brand.navbarLogoUrl} logoText={brand.navbarLogoText} />
           <main id="main" className="relative min-h-dvh pt-20">
             {children}
           </main>
-          <Footer lang={lang} />
+          <Footer lang={lang} logoUrl={brand.footerLogoUrl} logoText={brand.footerLogoText} />
           <AgentDock lang={lang} />
         </TooltipProvider>
       </body>

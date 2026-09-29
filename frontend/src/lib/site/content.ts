@@ -39,6 +39,53 @@ export function postPath(category: string, slug: string, lang = 'en') {
   return `/${lang}/blog/${category}/${slug}`;
 }
 
+export interface Brand {
+  navbarLogoUrl: string | null;
+  navbarLogoText: string;
+  footerLogoUrl: string | null;
+  footerLogoText: string;
+}
+
+/**
+ * The site's two animated GIF logos, hand-drawn and set on Strapi's global
+ * singleton. Hardcoded as a fallback so the nav/footer never go bare if
+ * Strapi is cold-starting or unreachable — these are the original assets,
+ * S3 URLs are stable.
+ */
+const BRAND_FALLBACK: Brand = {
+  navbarLogoUrl: 'https://elasticbeanstalk-us-east-2-641171614455.s3.us-east-2.amazonaws.com/header_logo_9db8af19c3.gif',
+  navbarLogoText: "Hi I'm Matt",
+  footerLogoUrl: 'https://elasticbeanstalk-us-east-2-641171614455.s3.us-east-2.amazonaws.com/footer_logo_b3ed876957.gif',
+  footerLogoText: 'Matt Pest',
+};
+
+export async function getBrand(): Promise<Brand> {
+  try {
+    const json = await strapi(
+      '/global',
+      {
+        locale: 'en',
+        populate: {
+          navbar: { populate: { navbarLogo: { populate: '*' } } },
+          footer: { populate: { footerLogo: { populate: '*' } } },
+        },
+      },
+      3600
+    );
+    const a = json.data?.attributes;
+    const navbarLogo = a?.navbar?.navbarLogo;
+    const footerLogo = a?.footer?.footerLogo;
+    return {
+      navbarLogoUrl: navbarLogo?.logoImg?.data?.attributes?.url ?? BRAND_FALLBACK.navbarLogoUrl,
+      navbarLogoText: navbarLogo?.logoText ?? BRAND_FALLBACK.navbarLogoText,
+      footerLogoUrl: footerLogo?.logoImg?.data?.attributes?.url ?? BRAND_FALLBACK.footerLogoUrl,
+      footerLogoText: footerLogo?.logoText ?? BRAND_FALLBACK.footerLogoText,
+    };
+  } catch {
+    return BRAND_FALLBACK;
+  }
+}
+
 function toSummary(a: any): PostSummary {
   const at = a.attributes;
   const cat = at.category?.data?.attributes;

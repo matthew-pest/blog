@@ -1,5 +1,6 @@
 'use client';
 
+import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useEffect, useState } from 'react';
@@ -15,7 +16,15 @@ function GithubMark({ className }: { className?: string }) {
 import { cn } from '@/lib/utils';
 import { useAgentStore } from '@/lib/agent-state';
 
-export default function Nav({ lang }: { lang: string }) {
+export default function Nav({
+  lang,
+  logoUrl,
+  logoText,
+}: {
+  lang: string;
+  logoUrl: string | null;
+  logoText: string;
+}) {
   const path = usePathname();
   const toggleDock = useAgentStore((s) => s.toggleDock);
   const mood = useAgentStore((s) => s.mood);
@@ -46,16 +55,21 @@ export default function Nav({ lang }: { lang: string }) {
         )}
       >
         <Link href={`/${lang}`} className="group flex items-center gap-2.5 pl-1">
-          <span className="relative grid size-7 place-items-center rounded-lg bg-primary text-[0.8rem] font-semibold text-primary-foreground">
-            M
+          <span className="relative grid size-8 place-items-center overflow-hidden rounded-lg bg-primary">
+            {logoUrl ? (
+              // Animated GIF: next/image is unoptimized site-wide, so this stays animated.
+              <Image src={logoUrl} alt="" width={64} height={64} unoptimized className="size-full object-cover" />
+            ) : (
+              <span className="text-[0.8rem] font-semibold text-primary-foreground">M</span>
+            )}
             <span
               className={cn(
-                'absolute -right-0.5 -top-0.5 size-2 rounded-full transition-colors',
+                'absolute -right-0.5 -top-0.5 size-2 rounded-full ring-2 ring-background transition-colors',
                 mood === 'idle' ? 'bg-muted-foreground/60' : 'bg-glow'
               )}
             />
           </span>
-          <span className="text-sm font-medium tracking-tight">Matt Pest</span>
+          <span className="text-sm font-medium tracking-tight">{logoText}</span>
         </Link>
 
         <nav className="hidden items-center gap-1 md:flex">
