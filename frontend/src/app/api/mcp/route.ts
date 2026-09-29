@@ -9,7 +9,7 @@ import { getPost, listPosts, searchPosts } from '@/lib/site/content';
 import { PROJECTS } from '@/lib/site/projects';
 import { RESUME, resumeToText } from '@/lib/site/resume';
 import { baseUrl } from '@/lib/site/base-url';
-import { widgetHtml } from '@/lib/mcp/widget';
+import { widgetResource } from '@/lib/mcp/widget';
 
 /**
  * mattpest.com as an MCP server — with MCP Apps.
@@ -36,32 +36,7 @@ const APP_TOOL_META = {
 
 const handler = createMcpHandler(
   (server) => {
-    const resource = (uri: string, mimeType: string) => {
-      const origin = baseUrl();
-      return {
-        contents: [
-          {
-            uri,
-            mimeType,
-            text: widgetHtml(),
-            _meta: {
-              ui: {
-                csp: {
-                  connectDomains: [origin],
-                  resourceDomains: [origin],
-                },
-              },
-              'openai/widgetCSP': {
-                connect_domains: [origin],
-                resource_domains: [origin],
-              },
-              'openai/widgetDomain': origin,
-              'openai/widgetDescription': "Matt Pest's interactive site content",
-            },
-          },
-        ],
-      };
-    };
+    const resource = (uri: string, mimeType: string) => widgetResource(uri, mimeType, baseUrl());
 
     registerAppResource(
       server,

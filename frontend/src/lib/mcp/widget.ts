@@ -54,3 +54,30 @@ else send('ui/initialize',{protocolVersion:'2025-06-18',appInfo:{name:'mattpest.
   .catch((error)=>{root.textContent='Unable to connect to the host: '+error.message});
 </script></body></html>`;
 }
+
+/** Build the exact resources/read payload returned to an MCP host. */
+export function widgetResource(uri: string, mimeType: string, origin: string) {
+  return {
+    contents: [
+      {
+        uri,
+        mimeType,
+        text: widgetHtml(),
+        _meta: {
+          ui: {
+            csp: {
+              connectDomains: [origin],
+              resourceDomains: [origin],
+            },
+          },
+          'openai/widgetCSP': {
+            connect_domains: [origin],
+            resource_domains: [origin],
+          },
+          'openai/widgetDomain': origin,
+          'openai/widgetDescription': "Matt Pest's interactive site content",
+        },
+      },
+    ],
+  };
+}

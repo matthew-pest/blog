@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import vm from 'node:vm';
-import { widgetHtml } from '../src/lib/mcp/widget.ts';
+import { widgetHtml, widgetResource } from '../src/lib/mcp/widget.ts';
 
 const route = await readFile(new URL('../src/app/api/mcp/route.ts', import.meta.url), 'utf8');
 assert.match(route, /ui: \{ resourceUri: RESOURCE_URI \}/);
@@ -9,6 +9,16 @@ assert.match(route, /'openai\/outputTemplate': OPENAI_RESOURCE_URI/);
 assert.match(route, /OPENAI_RESOURCE_MIME_TYPE = 'text\/html\+skybridge'/);
 assert.match(route, /resource\(RESOURCE_URI, RESOURCE_MIME_TYPE\)/);
 assert.match(route, /resource\(OPENAI_RESOURCE_URI, OPENAI_RESOURCE_MIME_TYPE\)/);
+
+const standardResource = widgetResource('ui://test/app.html', 'text/html;profile=mcp-app', 'https://example.com');
+const openAiResource = widgetResource('ui://test/app-chatgpt.html', 'text/html+skybridge', 'https://example.com');
+assert.equal(standardResource.contents[0].uri, 'ui://test/app.html');
+assert.equal(standardResource.contents[0].mimeType, 'text/html;profile=mcp-app');
+assert.equal(openAiResource.contents[0].uri, 'ui://test/app-chatgpt.html');
+assert.equal(openAiResource.contents[0].mimeType, 'text/html+skybridge');
+assert.equal(standardResource.contents[0].text, openAiResource.contents[0].text);
+assert.deepEqual(standardResource.contents[0]._meta.ui.csp.connectDomains, ['https://example.com']);
+assert.deepEqual(openAiResource.contents[0]._meta['openai/widgetCSP'].resource_domains, ['https://example.com']);
 
 const html = widgetHtml();
 assert.match(html, /^<!doctype html>/);
