@@ -1,0 +1,339 @@
+@import "tailwindcss";
+@import "react-slideshow-image/dist/styles.css";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+
+@custom-variant dark (&:is(.dark *));
+
+/* ------------------------------------------------------------------ */
+/* Design tokens                                                        */
+/* ------------------------------------------------------------------ */
+
+@theme inline {
+  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, "SFMono-Regular", Menlo, monospace;
+  --font-heading: var(--font-sans);
+
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+
+  /* Site accents: the field's palette, in CSS. */
+  --color-glow: var(--glow);
+  --color-glow-2: var(--glow-2);
+  --color-ink: var(--ink);
+
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
+  --radius-3xl: calc(var(--radius) * 2.2);
+  --radius-4xl: calc(var(--radius) * 2.6);
+}
+
+/* The site is dark-first: :root *is* the dark theme. A light theme can be
+   layered later; the field is tuned for ink. */
+:root,
+.dark {
+  --ink: oklch(0.13 0.012 285);
+  --background: oklch(0.13 0.012 285);
+  --foreground: oklch(0.96 0.005 285);
+  --card: oklch(0.18 0.014 285 / 72%);
+  --card-foreground: oklch(0.96 0.005 285);
+  --popover: oklch(0.17 0.014 285);
+  --popover-foreground: oklch(0.96 0.005 285);
+  --primary: oklch(0.93 0.01 285);
+  --primary-foreground: oklch(0.16 0.012 285);
+  --secondary: oklch(0.24 0.016 285);
+  --secondary-foreground: oklch(0.96 0.005 285);
+  --muted: oklch(0.24 0.016 285);
+  --muted-foreground: oklch(0.7 0.012 285);
+  --accent: oklch(0.27 0.02 290);
+  --accent-foreground: oklch(0.97 0.005 285);
+  --destructive: oklch(0.7 0.19 22);
+  --border: oklch(1 0 0 / 9%);
+  --input: oklch(1 0 0 / 12%);
+  --ring: oklch(0.7 0.14 300);
+  --chart-1: oklch(0.78 0.14 300);
+  --chart-2: oklch(0.8 0.12 220);
+  --chart-3: oklch(0.8 0.13 60);
+  --chart-4: oklch(0.72 0.16 340);
+  --chart-5: oklch(0.7 0.1 160);
+  --radius: 0.8rem;
+  --sidebar: oklch(0.17 0.014 285);
+  --sidebar-foreground: oklch(0.96 0.005 285);
+  --sidebar-primary: oklch(0.7 0.14 300);
+  --sidebar-primary-foreground: oklch(0.985 0 0);
+  --sidebar-accent: oklch(0.24 0.016 285);
+  --sidebar-accent-foreground: oklch(0.96 0.005 285);
+  --sidebar-border: oklch(1 0 0 / 10%);
+  --sidebar-ring: oklch(0.556 0 0);
+
+  --glow: oklch(0.78 0.15 300);
+  --glow-2: oklch(0.82 0.12 215);
+}
+
+/* ------------------------------------------------------------------ */
+/* Base                                                                 */
+/* ------------------------------------------------------------------ */
+
+html {
+  background: var(--ink);
+  color: var(--foreground);
+  color-scheme: dark;
+  scroll-behavior: smooth;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+body {
+  background: transparent;
+  font-family: var(--font-sans);
+  min-height: 100dvh;
+  overflow-x: hidden;
+}
+
+::selection {
+  background: oklch(0.7 0.16 300 / 45%);
+}
+
+/* The ::highlight() rule for the agent lives in [lang]/layout.tsx as a raw
+   <style> — Lightning CSS (Tailwind v4) doesn't parse that pseudo-element. */
+
+.mark-agent {
+  background: oklch(0.72 0.17 300 / 34%);
+  border-radius: 0.2em;
+  box-shadow: 0 0 0 3px oklch(0.72 0.17 300 / 34%);
+}
+
+/* ------------------------------------------------------------------ */
+/* Ambient field                                                        */
+/* ------------------------------------------------------------------ */
+
+.ambient-field {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  overflow: hidden;
+  background: var(--ink);
+}
+
+.ambient-field__canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+  opacity: 0;
+  transition: opacity 1.4s ease;
+}
+
+.ambient-field[data-ready="true"][data-mode="webgpu"] .ambient-field__canvas {
+  opacity: 1;
+}
+
+.ambient-field__fallback {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(60% 50% at 20% 15%, oklch(0.35 0.12 300 / 70%), transparent 70%),
+    radial-gradient(50% 45% at 85% 30%, oklch(0.32 0.1 220 / 60%), transparent 70%),
+    radial-gradient(70% 60% at 50% 100%, oklch(0.28 0.08 340 / 55%), transparent 70%),
+    var(--ink);
+  transition: opacity 1.4s ease;
+}
+
+.ambient-field[data-ready="true"][data-mode="webgpu"] .ambient-field__fallback {
+  opacity: 0;
+}
+
+/* The shaders are already dark; the scrim only settles the lower half so
+   long-form text sits on something calm. */
+.ambient-field__scrim {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to bottom, transparent 30%, oklch(0.13 0.012 285 / 45%));
+}
+
+/* ------------------------------------------------------------------ */
+/* Surfaces & type                                                      */
+/* ------------------------------------------------------------------ */
+
+.glass {
+  background: color-mix(in oklab, var(--ink) 64%, transparent);
+  backdrop-filter: blur(20px) saturate(150%);
+  border: 1px solid oklch(1 0 0 / 8%);
+  box-shadow:
+    inset 0 1px 0 oklch(1 0 0 / 6%),
+    0 20px 60px -30px oklch(0 0 0 / 70%);
+}
+
+.glass-strong {
+  background: color-mix(in oklab, var(--ink) 84%, transparent);
+  backdrop-filter: blur(28px) saturate(160%);
+  border: 1px solid oklch(1 0 0 / 10%);
+  box-shadow:
+    inset 0 1px 0 oklch(1 0 0 / 7%),
+    0 30px 80px -30px oklch(0 0 0 / 80%);
+}
+
+.hairline {
+  border-color: oklch(1 0 0 / 9%);
+}
+
+.display {
+  font-weight: 600;
+  letter-spacing: -0.035em;
+  line-height: 0.98;
+  text-wrap: balance;
+}
+
+.eyebrow {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--muted-foreground);
+}
+
+.kbd {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  padding: 0.1rem 0.4rem;
+  border-radius: 0.35rem;
+  border: 1px solid oklch(1 0 0 / 14%);
+  background: oklch(1 0 0 / 5%);
+  color: var(--muted-foreground);
+}
+
+/* ------------------------------------------------------------------ */
+/* Prose (blog posts, markdown from Strapi)                             */
+/* ------------------------------------------------------------------ */
+
+.prose-site {
+  font-size: 1.06rem;
+  line-height: 1.75;
+  color: oklch(0.9 0.006 285);
+}
+.prose-site > * + * { margin-top: 1.1em; }
+.prose-site h1, .prose-site h2, .prose-site h3, .prose-site h4 {
+  color: var(--foreground);
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  line-height: 1.15;
+  margin-top: 2em;
+}
+.prose-site h1 { font-size: 2.1rem; }
+.prose-site h2 { font-size: 1.7rem; }
+.prose-site h3 { font-size: 1.3rem; }
+.prose-site h4 { font-size: 1.1rem; }
+.prose-site a { color: var(--glow); text-decoration: underline; text-underline-offset: 3px; text-decoration-color: oklch(0.78 0.15 300 / 45%); }
+.prose-site a:hover { text-decoration-color: var(--glow); }
+.prose-site strong { color: var(--foreground); font-weight: 600; }
+.prose-site em { font-style: italic; }
+.prose-site blockquote {
+  border-left: 2px solid var(--glow);
+  padding: 0.25rem 0 0.25rem 1.25rem;
+  color: var(--muted-foreground);
+  font-style: italic;
+}
+.prose-site ul { list-style: disc; padding-left: 1.4rem; }
+.prose-site ol { list-style: decimal; padding-left: 1.4rem; }
+.prose-site li + li { margin-top: 0.35em; }
+.prose-site pre {
+  font-family: var(--font-mono);
+  font-size: 0.88rem;
+  background: oklch(0.1 0.01 285 / 85%);
+  border: 1px solid oklch(1 0 0 / 8%);
+  border-radius: var(--radius);
+  padding: 1rem 1.2rem;
+  overflow-x: auto;
+}
+.prose-site code {
+  font-family: var(--font-mono);
+  font-size: 0.9em;
+  background: oklch(1 0 0 / 7%);
+  border-radius: 0.35rem;
+  padding: 0.1em 0.4em;
+}
+.prose-site pre code { background: transparent; padding: 0; }
+.prose-site table { width: 100%; border-collapse: collapse; font-size: 0.95rem; }
+.prose-site th { text-align: left; font-weight: 600; padding: 0.6rem 0.8rem; border-bottom: 1px solid oklch(1 0 0 / 14%); }
+.prose-site td { padding: 0.6rem 0.8rem; border-bottom: 1px solid oklch(1 0 0 / 8%); }
+.prose-site img { width: 100%; border-radius: var(--radius-xl); margin: 1.5rem 0; }
+.prose-site hr { border: 0; border-top: 1px solid oklch(1 0 0 / 10%); margin: 2.5rem 0; }
+
+/* Legacy class from the Strapi starter — keep old content rendering. */
+.rich-text { composes: none; }
+
+/* ------------------------------------------------------------------ */
+/* Motion                                                               */
+/* ------------------------------------------------------------------ */
+
+@keyframes rise {
+  from { opacity: 0; transform: translateY(14px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.rise { animation: rise 0.7s cubic-bezier(0.2, 0.7, 0.2, 1) both; }
+.rise-1 { animation-delay: 0.08s; }
+.rise-2 { animation-delay: 0.16s; }
+.rise-3 { animation-delay: 0.24s; }
+.rise-4 { animation-delay: 0.32s; }
+
+@keyframes pulse-ring {
+  0% { transform: scale(0.9); opacity: 0.8; }
+  100% { transform: scale(1.8); opacity: 0; }
+}
+.pulse-ring::after {
+  content: "";
+  position: absolute;
+  inset: -4px;
+  border-radius: inherit;
+  border: 1px solid var(--glow);
+  animation: pulse-ring 1.6s ease-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rise, .pulse-ring::after { animation: none; }
+  html { scroll-behavior: auto; }
+}
+
+/* React slideshow (legacy post component). */
+.react-slideshow-container [aria-label="Previous Slide"] { margin-left: 1rem; }
+.react-slideshow-container [aria-label="Next Slide"] { margin-right: 1rem; }
+
+/* Print: the résumé page becomes the PDF. */
+@media print {
+  .ambient-field, .no-print { display: none !important; }
+  html, body { background: white !important; color: black !important; }
+}

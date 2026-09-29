@@ -34,7 +34,7 @@ function Testimonial({ text, authorName, picture }: Testimonial) {
           <Image
             src={imageUrl || ""}
             alt={picture.data.attributes.alternativeText || "none provided"}
-            className="inline-block h-32 w-32 rounded-full"
+            className="inline-block h-32 w-32 rounded-full object-cover"
             width={200}
             height={200}
           />

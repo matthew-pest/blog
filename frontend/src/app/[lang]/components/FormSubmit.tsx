@@ -46,7 +46,7 @@ export default function FormSubmit({
   }
 
   return (
-    <div className="flex flex-row items-center self-center justify-center flex-shrink-0 shadow-md lg:justify-end">
+    <div className="flex flex-row items-center self-center justify-center shrink-0 shadow-md lg:justify-end">
       <div className="flex flex-col">
         <div className="flex flex-row">
           {successMessage ? (

@@ -1,38 +1,65 @@
-This is a [Next.js](https://nextjs.org/) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
+# mattpest.com — frontend
 
-## Getting Started
+A personal site with an agent in it. Next.js 16 App Router, React 19, Tailwind 4.
 
-First, run the development server:
-
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
+```
+src/
+  app/
+    [lang]/               locale-prefixed site (proxy.ts redirects to /en, /de, /cs)
+      page.tsx            home: hero, capabilities, projects, latest posts, MCP, testimonials
+      blog/               index, category, post (Strapi content)
+      resume/             native résumé rendered from lib/site/resume.ts (print-ready)
+      [...slug]/          any other Strapi page (legacy section components)
+    api/chat/route.ts     the agent — AI SDK 7 + Vercel AI Gateway
+    api/mcp/route.ts      the site as an MCP server, with MCP Apps (ui://) support
+    mcp-app/              the widget MCP hosts render in a sandboxed iframe
+  components/
+    ambient/              vgpu WebGPU field — two shaders (grain.wgsl, contour.wgsl) over
+                          field-common.wgsl; start-field.ts runs them, AmbientField.tsx mounts it
+    agent/                ⌘K dock, message part renderers, page context, highlight
+    site/                 nav, footer, cards, buttons
+    ai-elements/, ui/     AI Elements + shadcn/ui (radix style)
+  lib/
+    agent-state.ts        zustand store shared by the agent, the field, and the pages
+    ai/                   tools, system prompt, typed UIMessage contract, rate limit
+    site/                 Strapi content access, résumé data, projects, base URL
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## How the pieces talk
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+- **Agent → page.** Client tools `navigate` and `highlight` are fulfilled in the browser
+  (`AgentDock.tsx` → `onToolCall`). `highlight` uses the CSS Custom Highlight API.
+- **Page → agent.** `PageContextReporter` writes the current route, post, and text
+  selection into the store; every chat request carries it as `context`.
+- **Agent → field.** The route streams transient `data-status` parts (thinking,
+  searching, reading, acting, hue, ripple). The dock writes them to the store; the
+  shader reads the store every frame and glides toward the new state.
+- **Site → other agents.** `/api/mcp` exposes `search_posts`, `read_post`,
+  `get_resume`, `list_projects`, `list_posts`. `read_post` and `get_resume` carry a
+  `ui://` resource, so hosts that support MCP Apps render `/mcp-app` inline.
 
-[API routes](https://nextjs.org/docs/api-routes/introduction) can be accessed on [http://localhost:3000/api/hello](http://localhost:3000/api/hello). This endpoint can be edited in `pages/api/hello.ts`.
+## Run it
 
-The `pages/api` directory is mapped to `/api/*`. Files in this directory are treated as [API routes](https://nextjs.org/docs/api-routes/introduction) instead of React pages.
+```bash
+yarn            # in this directory
+cp .env.example .env.local   # fill in AI_GATEWAY_API_KEY and the Strapi token
+yarn dev
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/basic-features/font-optimization) to automatically optimize and load Inter, a custom Google Font.
+WebGPU is required for the ambient field (Chrome/Edge/Safari 18+); everything else
+degrades to a static gradient. Shaders are validated headlessly:
 
-## Learn More
+```bash
+npx vgpu check src/components/ambient/grain.wgsl --require-validation
+npx vgpu check src/components/ambient/contour.wgsl --require-validation
+```
 
-To learn more about Next.js, take a look at the following resources:
+Visitors pick the shader with the toggle in the nav or footer (remembered in
+`localStorage`), and the agent can switch it too via the `setBackground` tool.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Models
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js/) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/deployment) for more details.
+`AGENT_MODEL_FAST` (default `anthropic/claude-sonnet-5`) serves normal turns;
+`AGENT_MODEL_DEEP` (default `anthropic/claude-opus-5`) serves the *Deep* toggle.
+The Gateway falls back through `AGENT_MODEL_*_FALLBACKS` when a model is unavailable.
+Claude 5 requires paid credits on the AI Gateway account.

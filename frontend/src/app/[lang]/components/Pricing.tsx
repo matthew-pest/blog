@@ -83,7 +83,7 @@ export default function Pricing({ data }: PriceProps) {
                         xmlns="http://www.w3.org/2000/svg"
                         viewBox="0 0 20 20"
                         fill="currentColor"
-                        className={`flex-shrink-0 w-6 h-6 ${
+                        className={`shrink-0 w-6 h-6 ${
                           plan.isRecommended
                             ? "dark:text-gray-900"
                             : "dark:text-gray-400"

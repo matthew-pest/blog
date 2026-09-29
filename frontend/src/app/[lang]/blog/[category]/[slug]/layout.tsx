@@ -1,113 +1,54 @@
-import ArticleSelect from "@/app/[lang]/components/ArticleSelect";
-import { fetchAPI } from "@/app/[lang]/utils/fetch-api";
+import Link from 'next/link';
+import { listPosts } from '@/lib/site/content';
+import AskButton from '@/components/site/AskButton';
 
-async function fetchSideMenuData(filter: string) {
-  try {
-    const token = process.env.NEXT_PUBLIC_STRAPI_API_TOKEN;
-    const options = { headers: { Authorization: `Bearer ${token}` } };
-
-    const categoriesResponse = await fetchAPI(
-      "/categories",
-      { populate: "*" },
-      options
-    );
-
-    const articlesResponse = await fetchAPI(
-      "/articles",
-      filter
-        ? {
-            filters: {
-              category: {
-                name: filter,
-              },
-            },
-          }
-        : {},
-      options
-    );
-
-    return {
-      articles: articlesResponse.data,
-      categories: categoriesResponse.data,
-    };
-  } catch (error) {
-    console.error(error);
-  }
-}
-
-interface Category {
-  id: number;
-  attributes: {
-    name: string;
-    slug: string;
-    articles: {
-      data: Array<{}>;
-    };
-  };
-}
-
-interface Article {
-  id: number;
-  attributes: {
-    title: string;
-    slug: string;
-  };
-}
-
-interface Data {
-  articles: Article[];
-  categories: Category[];
-}
-
-export default async function LayoutRoute({
+export default async function PostLayout({
   params,
   children,
 }: {
   children: React.ReactNode;
-  params: {
-    slug: string;
-    category: string;
-  };
+  params: Promise<{ lang: string; slug: string; category: string }>;
 }) {
-  const { category } = params;
-  const { categories, articles } = (await fetchSideMenuData(category)) as Data;
+  const { lang, slug, category } = await params;
+  const posts = await listPosts().catch(() => []);
+  const related = posts.filter((p) => p.category === category && p.slug !== slug).slice(0, 5);
+  const categories = Array.from(new Map(posts.map((p) => [p.category, p.categoryName])).entries());
 
   return (
-    <section className="container p-8 mx-auto space-y-6 sm:space-y-12">
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-2 lg:gap-4">
-        <div className="col-span-2">{children}</div>
-        <aside>
-          <ArticleSelect
-            categories={categories}
-            articles={articles}
-            params={params}
-          />
+    <div className="mx-auto max-w-6xl px-5 pb-20">
+      <div className="grid gap-10 lg:grid-cols-[minmax(0,1fr)_280px]">
+        <div className="min-w-0">{children}</div>
+        <aside className="no-print space-y-4 lg:sticky lg:top-24 lg:self-start">
+          <div className="rounded-3xl p-5 glass">
+            <p className="eyebrow">Ask about this post</p>
+            <p className="mt-2 text-sm text-muted-foreground">Select any passage and ask — or let the agent highlight the parts that matter.</p>
+            <AskButton variant="ghost" className="mt-4 w-full justify-center" prompt="Summarize this post and highlight its central claim.">
+              Summarize &amp; highlight
+            </AskButton>
+          </div>
+          {related.length > 0 && (
+            <div className="rounded-3xl p-5 glass">
+              <p className="eyebrow">More in {related[0].categoryName}</p>
+              <ul className="mt-3 space-y-2 text-sm">
+                {related.map((p) => (
+                  <li key={p.slug}>
+                    <Link href={p.path} className="text-foreground/90 hover:text-glow">
+                      {p.title}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+          <div className="flex flex-wrap gap-1.5 px-1">
+            {categories.map(([s, name]) => (
+              <Link key={s} href={`/${lang}/blog/${s}`} className="rounded-full border border-border px-2.5 py-1 text-xs hover:border-glow/50">
+                {name}
+              </Link>
+            ))}
+          </div>
         </aside>
       </div>
-    </section>
-  );
-}
-
-export async function generateStaticParams() {
-  const token = process.env.NEXT_PUBLIC_STRAPI_API_TOKEN;
-  const path = `/articles`;
-  const options = { headers: { Authorization: `Bearer ${token}` } };
-  const articleResponse = await fetchAPI(
-    path,
-    {
-      populate: ["category"],
-    },
-    options
-  );
-
-  return articleResponse.data.map(
-    (article: {
-      attributes: {
-        slug: string;
-        category: {
-          slug: string;
-        };
-      };
-    }) => ({ slug: article.attributes.slug, category: article.attributes.slug })
+    </div>
   );
 }
