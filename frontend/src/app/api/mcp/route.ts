@@ -1,4 +1,6 @@
 import { createMcpHandler } from 'mcp-handler';
+import { readFile } from 'node:fs/promises';
+import path from 'node:path';
 import {
   RESOURCE_MIME_TYPE,
   registerAppResource,
@@ -19,15 +21,61 @@ import { baseUrl } from '@/lib/site/base-url';
  * /mcp-app inline instead of a wall of text.
  */
 
-const UI_VERSION = '2026-09-11-1';
+const UI_VERSION = '2026-09-29-2';
 const RESOURCE_URI = `ui://mattpest/app.html?v=${UI_VERSION}`;
 
+const APP_TOOL_META = {
+  ui: { resourceUri: RESOURCE_URI },
+} as const;
+
+let widgetHtmlPromise: Promise<string> | undefined;
+
 async function widgetHtml(): Promise<string> {
-  const origin = baseUrl();
-  const res = await fetch(`${origin}/mcp-app`, { next: { revalidate: 300 } });
-  const html = await res.text();
-  // Root-relative asset URLs must resolve against the site, not the host's sandbox.
-  return html.replace(/<head>/i, `<head><base href="${origin}/">`);
+  widgetHtmlPromise ??= buildWidgetHtml();
+  return widgetHtmlPromise;
+}
+
+async function buildWidgetHtml(): Promise<string> {
+  const sdkPath = path.join(
+    process.cwd(),
+    'node_modules/@modelcontextprotocol/ext-apps/dist/src/app-with-deps.js'
+  );
+  const sdk = await readFile(sdkPath, 'utf8');
+  const appSymbol = sdk.match(/,([\w$]+) as App};?\s*$/)?.[1];
+  if (!appSymbol) throw new Error('Unable to locate the App export in the MCP Apps browser bundle');
+  const exposedSdk = sdk.replace(/\bexport\{/, `globalThis.__McpApp=${appSymbol};export{`).replace(/<\/script/gi, '<\\/script');
+
+  return `<!doctype html>
+<html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<style>
+:root{color-scheme:light dark;font-family:system-ui,sans-serif}*{box-sizing:border-box}body{margin:0;padding:8px;background:transparent;color:var(--color-text-primary,currentColor)}article{max-width:680px;padding:20px;border:1px solid var(--color-border-secondary,#7775);border-radius:16px;background:var(--color-background-primary,#fff1)}.eyebrow{margin:0 0 8px;text-transform:uppercase;letter-spacing:.08em;font-size:12px;opacity:.7}h1{margin:0 0 8px;font-size:24px;line-height:1.15}p{line-height:1.5}.muted{opacity:.72}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:10px;margin:18px 0}.card{padding:12px;border:1px solid var(--color-border-secondary,#7775);border-radius:12px}.card p{margin:4px 0 0;font-size:12px}.body{max-height:320px;overflow:auto}button{padding:9px 15px;border:0;border-radius:999px;background:var(--color-background-inverse,#111);color:var(--color-text-inverse,#fff);font:inherit;cursor:pointer}.status{padding:20px;opacity:.7}
+</style></head><body><div id="root" class="status">Connecting to host…</div>
+<script type="module">${exposedSdk}
+const root=document.querySelector('#root');
+const esc=(value)=>String(value??'').replace(/[&<>"']/g,(char)=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
+const date=(value)=>new Date(value).toLocaleDateString('en-US',{year:'numeric',month:'long',day:'numeric'});
+let app;
+function open(url){app.openLink({url})}
+function render(payload){
+  if(payload?.kind==='post'){
+    const p=payload.post;
+    const paragraphs=String(p.body??'').split(/\\n{2,}/).slice(0,6).map((text)=>'<p>'+esc(text.replace(/^#+\\s*/,''))+'</p>').join('');
+    root.className='';root.innerHTML='<article><p class="eyebrow">'+esc(p.categoryName)+' · '+esc(date(p.publishedAt))+'</p><h1>'+esc(p.title)+'</h1><p class="muted">'+esc(p.description)+'</p><div class="body">'+paragraphs+'</div><button id="open">Read on mattpest.com →</button></article>';
+    document.querySelector('#open').onclick=()=>open(p.url);return;
+  }
+  if(payload?.kind==='resume'){
+    const r=payload.resume,current=r.experience?.[0]??{};
+    const highlights=(r.highlights??[]).slice(0,4).map((h)=>'<div class="card"><strong>'+esc(h.title)+'</strong><p>'+esc(h.detail)+'</p></div>').join('');
+    root.className='';root.innerHTML='<article><p class="eyebrow">Résumé · updated '+esc(r.updated)+'</p><h1>'+esc(r.name)+'</h1><p class="muted">'+esc(r.headline)+' · '+esc(r.location)+'</p><p>'+esc(r.summary)+'</p><div class="grid">'+highlights+'</div><p><strong>'+esc(current.title)+' · '+esc(current.org)+'</strong><br><span class="muted">'+esc(current.start)+' – '+esc(current.end)+'</span></p><button id="open">Full résumé →</button></article>';
+    document.querySelector('#open').onclick=()=>open(r.website+'/en/resume');return;
+  }
+  root.textContent='The tool returned no displayable content.';
+}
+app=new globalThis.__McpApp({name:'mattpest.com',version:'1.0.0'},{});
+app.ontoolresult=(result)=>render(result.structuredContent);
+root.textContent='Waiting for the tool result…';
+try{await app.connect()}catch(error){root.textContent='Unable to connect to the host: '+error.message}
+</script></body></html>`;
 }
 
 const handler = createMcpHandler(
@@ -107,7 +155,7 @@ const handler = createMcpHandler(
         description: 'Read a post in full (markdown). Renders as an article card in hosts that support MCP Apps.',
         inputSchema: z.object({ slug: z.string().describe('Post slug from search_posts / list_posts') }),
         annotations: { readOnlyHint: true, openWorldHint: false },
-        _meta: { ui: { resourceUri: RESOURCE_URI } },
+        _meta: APP_TOOL_META,
       },
       async ({ slug }) => {
         const post = await getPost(slug);
@@ -127,7 +175,7 @@ const handler = createMcpHandler(
         description: 'Structured résumé: experience, highlights, skills, education, contact. Renders as a card in MCP Apps hosts.',
         inputSchema: z.object({}),
         annotations: { readOnlyHint: true, openWorldHint: false },
-        _meta: { ui: { resourceUri: RESOURCE_URI } },
+        _meta: APP_TOOL_META,
       },
       async () => ({
         content: [{ type: 'text', text: resumeToText() }],
