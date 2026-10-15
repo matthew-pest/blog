@@ -7,6 +7,7 @@ import Nav from '@/components/site/Nav';
 import Footer from '@/components/site/Footer';
 import AgentDock from '@/components/agent/AgentDock';
 import PageContextReporter from '@/components/agent/PageContextReporter';
+import UnlockReveal from '@/components/agent/UnlockReveal';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { getBrand } from '@/lib/site/content';
 
@@ -66,6 +67,7 @@ export default async function RootLayout({
           </main>
           <Footer lang={lang} logoUrl={brand.footerLogoUrl} logoText={brand.footerLogoText} />
           <AgentDock lang={lang} />
+          <UnlockReveal />
         </TooltipProvider>
       </body>
     </html>

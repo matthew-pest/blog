@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { ArrowUpRight, Compass, FileText, Globe, Highlighter, Sparkles, Ticket, User } from 'lucide-react';
+import { ArrowUpRight, Compass, FileText, Globe, Highlighter, KeyRound, Layers, Presentation, Sparkles, Ticket, User } from 'lucide-react';
 import type { ChatStatus } from 'ai';
 import { cn } from '@/lib/utils';
 import type { AgentUIMessage } from '@/lib/ai/types';
@@ -172,6 +172,36 @@ function PartView({ part, lang, streaming, role }: { part: Part; lang: string; s
           Background → {part.input?.variant === 'contour' ? 'Contour Field' : 'Slate Grain'}
         </ActionChip>
       );
+
+    case 'tool-unlockPresentation': {
+      const out = part.state === 'output-available' ? (part.output as { ok?: boolean; reason?: string }) : undefined;
+      return (
+        <ActionChip icon={<KeyRound className="size-3.5" />} done={out?.ok === true}>
+          {out == null ? 'Checking the password…' : out.ok ? 'Access granted — opening the deck' : (out.reason ?? 'Wrong password')}
+        </ActionChip>
+      );
+    }
+
+    case 'tool-gotoSlide':
+    case 'tool-nextSlide':
+    case 'tool-prevSlide': {
+      const out = part.state === 'output-available' ? (part.output as { ok?: boolean; slide?: number; title?: string; reason?: string }) : undefined;
+      return (
+        <ActionChip icon={<Presentation className="size-3.5" />} done={out?.ok === true}>
+          {out?.ok ? `Slide ${out.slide} · ${out.title}` : (out?.reason ?? 'Moving the deck…')}
+        </ActionChip>
+      );
+    }
+
+    case 'tool-setArchitecture': {
+      const input = part.input as { iteration?: number; focus?: string } | undefined;
+      return (
+        <ActionChip icon={<Layers className="size-3.5" />} done={part.state === 'output-available'}>
+          Architecture v{input?.iteration ?? '…'}
+          {input?.focus ? ` · ${input.focus}` : ''}
+        </ActionChip>
+      );
+    }
 
     case 'tool-highlight':
       return (

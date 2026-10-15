@@ -4,10 +4,11 @@ import { useChat } from '@ai-sdk/react';
 import { DefaultChatTransport, lastAssistantMessageIsCompleteWithToolCalls } from 'ai';
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Brain, Paperclip, Sparkles, Ticket, X } from 'lucide-react';
+import { Brain, Paperclip, RotateCcw, Sparkles, Ticket, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { useAgentStore } from '@/lib/agent-state';
+import { CATEGORY_HUE, useAgentStore } from '@/lib/agent-state';
 import type { AgentUIMessage } from '@/lib/ai/types';
+import { ARCHITECTURE_SLIDE_INDEX, SLIDES, SLIDE_COUNT, findArchNode, resolveSlide } from '@/lib/deck/hogbot';
 import { highlightPassage } from './highlight';
 import { MessageParts } from './MessageParts';
 import { Conversation, ConversationContent, ConversationScrollButton } from '@/components/ai-elements/conversation';
@@ -59,6 +60,35 @@ import { Suggestion, Suggestions } from '@/components/ai-elements/suggestion';
 import { Shimmer } from '@/components/ai-elements/shimmer';
 
 /**
+ * The conversation survives navigation between the site's root layouts (the
+ * presentation lives in its own), so it is mirrored into sessionStorage.
+ */
+const CHAT_KEY = 'mp.chat.v1';
+const DOCK_OPEN_KEY = 'mp.dock.open';
+const CHAT_MAX_BYTES = 900_000;
+
+function loadSavedMessages(): AgentUIMessage[] | null {
+  try {
+    const raw = window.sessionStorage.getItem(CHAT_KEY);
+    const parsed = raw ? (JSON.parse(raw) as AgentUIMessage[]) : null;
+    return Array.isArray(parsed) ? parsed : null;
+  } catch {
+    return null;
+  }
+}
+
+function saveMessages(messages: AgentUIMessage[]) {
+  try {
+    if (messages.length === 0) {
+      window.sessionStorage.removeItem(CHAT_KEY);
+      return;
+    }
+    const json = JSON.stringify(messages);
+    if (json.length <= CHAT_MAX_BYTES) window.sessionStorage.setItem(CHAT_KEY, json);
+  } catch {}
+}
+
+/**
  * The agent dock: a ⌘K panel that floats over every page. It talks to
  * /api/chat, fulfils the agent's client tools (navigate, highlight), and
  * writes the conversation's mood into the shared store so the field reacts.
@@ -92,7 +122,7 @@ export default function AgentDock({ lang }: { lang: string }) {
     []
   );
 
-  const { messages, sendMessage, status, error, addToolOutput, stop, clearError } = useChat<AgentUIMessage>({
+  const { messages, sendMessage, setMessages, status, error, addToolOutput, stop, clearError } = useChat<AgentUIMessage>({
     transport,
     sendAutomaticallyWhen: lastAssistantMessageIsCompleteWithToolCalls,
     onData: (part) => {
@@ -103,10 +133,71 @@ export default function AgentDock({ lang }: { lang: string }) {
       if (part.data.ripple) s.ripple([0.5, 0.35]);
       setStatusLabel(part.data.label ?? null);
     },
-    onToolCall: ({ toolCall }) => {
+    onToolCall: async ({ toolCall }) => {
       if (toolCall.dynamic) return;
       const s = useAgentStore.getState();
-      if (toolCall.toolName === 'navigate') {
+      const deckGo = (index: number) => {
+        s.setDeck({ slide: index, focus: null });
+        return { ok: true as const, slide: index + 1, title: SLIDES[index].title };
+      };
+      if (toolCall.toolName === 'unlockPresentation') {
+        const { password } = toolCall.input as { password: string };
+        s.setMood('acting');
+        let output: { ok: boolean; reason?: string };
+        try {
+          const res = await fetch('/api/presentation/unlock', {
+            method: 'POST',
+            headers: { 'content-type': 'application/json' },
+            body: JSON.stringify({ password }),
+          });
+          output = (await res.json()) as { ok: boolean; reason?: string };
+        } catch {
+          output = { ok: false, reason: 'Could not reach the unlock service.' };
+        }
+        addToolOutput({ tool: 'unlockPresentation', toolCallId: toolCall.toolCallId, output });
+        if (output.ok) {
+          // The reveal overlay (UnlockReveal) takes it from here.
+          try {
+            window.sessionStorage.setItem(DOCK_OPEN_KEY, '1');
+          } catch {}
+          s.ripple([0.5, 0.5]);
+          s.setHue(CATEGORY_HUE.physics);
+          s.setReveal('presentation');
+        }
+      } else if (toolCall.toolName === 'gotoSlide') {
+        const { slide } = toolCall.input as { slide: number | string };
+        const idx = resolveSlide(slide);
+        s.setMood('acting');
+        addToolOutput({
+          tool: 'gotoSlide',
+          toolCallId: toolCall.toolCallId,
+          output:
+            idx == null
+              ? { ok: false, reason: `No slide "${slide}". Slides: ${SLIDES.map((x, i) => `${i + 1} ${x.title}`).join(', ')}` }
+              : deckGo(idx),
+        });
+      } else if (toolCall.toolName === 'nextSlide') {
+        s.setMood('acting');
+        addToolOutput({ tool: 'nextSlide', toolCallId: toolCall.toolCallId, output: deckGo(Math.min(s.deck.slide + 1, SLIDE_COUNT - 1)) });
+      } else if (toolCall.toolName === 'prevSlide') {
+        s.setMood('acting');
+        addToolOutput({ tool: 'prevSlide', toolCallId: toolCall.toolCallId, output: deckGo(Math.max(s.deck.slide - 1, 0)) });
+      } else if (toolCall.toolName === 'setArchitecture') {
+        const { iteration, focus } = toolCall.input as { iteration: 1 | 2 | 3; focus?: string };
+        const node = focus ? findArchNode(iteration, focus) : null;
+        s.setMood('acting');
+        s.setDeck({ slide: ARCHITECTURE_SLIDE_INDEX, iteration, focus: node?.id ?? null });
+        addToolOutput({
+          tool: 'setArchitecture',
+          toolCallId: toolCall.toolCallId,
+          output: {
+            ok: true,
+            iteration,
+            focus: node?.id ?? null,
+            reason: focus && !node ? `No component called "${focus}" in v${iteration}; showing the iteration without a spotlight.` : undefined,
+          },
+        });
+      } else if (toolCall.toolName === 'navigate') {
         const { path } = toolCall.input as { path: string };
         const safe = path.startsWith('/') ? path : `/${lang}${path.startsWith('/') ? '' : '/'}${path}`;
         s.setMood('acting');
@@ -147,6 +238,30 @@ export default function AgentDock({ lang }: { lang: string }) {
     },
     onError: () => useAgentStore.getState().setMood('error'),
   });
+
+  // Restore the conversation after a root-layout change (e.g. into the deck).
+  useEffect(() => {
+    const saved = loadSavedMessages();
+    if (saved?.length) setMessages(saved);
+    try {
+      if (window.sessionStorage.getItem(DOCK_OPEN_KEY) === '1') {
+        window.sessionStorage.removeItem(DOCK_OPEN_KEY);
+        setOpen(true);
+      }
+    } catch {}
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    saveMessages(messages);
+  }, [messages]);
+
+  const reset = useCallback(() => {
+    stop();
+    clearError();
+    setMessages([]);
+    setStatusLabel(null);
+  }, [stop, clearError, setMessages]);
 
   // Mirror the request lifecycle into the field's mood.
   useEffect(() => {
@@ -192,8 +307,12 @@ export default function AgentDock({ lang }: { lang: string }) {
     [sendMessage, clearError]
   );
 
+  const inDeck = page.kind === 'presentation';
+
   const suggestions = useMemo(() => {
     const s: string[] = [];
+    if (page.kind === 'presentation')
+      return ['Next slide', 'Show the architecture, v2', 'Spotlight the webhook proxy', 'What were the tradeoffs?', 'Jump to results'];
     if (page.kind === 'post') s.push('Summarize this post in three lines', 'Show me the most surprising claim here');
     if (page.selection) s.push('Explain the text I selected');
     s.push(
@@ -217,7 +336,8 @@ export default function AgentDock({ lang }: { lang: string }) {
         aria-label="Ask the site"
         className={cn(
           'no-print fixed bottom-5 left-1/2 z-40 -translate-x-1/2 items-center gap-2 whitespace-nowrap rounded-full pl-3 pr-4 text-sm transition-all duration-500 glass',
-          open ? 'pointer-events-none translate-y-6 opacity-0' : 'flex h-11 opacity-100 hover:border-glow/40'
+          // The deck has its own control in its bottom bar.
+          open || inDeck ? 'pointer-events-none translate-y-6 opacity-0' : 'flex h-11 opacity-100 hover:border-glow/40'
         )}
       >
         <span className={cn('relative grid size-6 place-items-center rounded-full bg-glow/15', busy && 'pulse-ring')}>
@@ -248,13 +368,32 @@ export default function AgentDock({ lang }: { lang: string }) {
               <Sparkles className="size-3.5 text-glow" />
             </span>
             <div>
-              <p className="text-sm font-medium leading-none">Site agent</p>
+              <p className="text-sm font-medium leading-none">{inDeck ? 'Deck agent' : 'Site agent'}</p>
               <p className="mt-1 text-[0.7rem] text-muted-foreground">
-                {statusLabel ? <Shimmer as="span">{statusLabel}</Shimmer> : deep ? 'Claude Opus · deep mode' : 'Claude via Vercel AI Gateway'}
+                {statusLabel ? (
+                  <Shimmer as="span">{statusLabel}</Shimmer>
+                ) : inDeck ? (
+                  'Slide controls unlocked'
+                ) : deep ? (
+                  'Claude Opus · deep mode'
+                ) : (
+                  'Claude via Vercel AI Gateway'
+                )}
               </p>
             </div>
           </div>
           <div className="flex items-center gap-1">
+            {messages.length > 0 && (
+              <button
+                type="button"
+                onClick={reset}
+                title="New conversation"
+                aria-label="New conversation"
+                className="grid size-8 place-items-center rounded-full text-muted-foreground hover:bg-accent hover:text-foreground"
+              >
+                <RotateCcw className="size-3.5" />
+              </button>
+            )}
             <button
               type="button"
               onClick={() => setDeep(!deep)}
@@ -283,8 +422,9 @@ export default function AgentDock({ lang }: { lang: string }) {
             {messages.length === 0 && (
               <div className="rise flex h-full flex-col justify-end gap-3 pb-2">
                 <p className="text-sm leading-relaxed text-muted-foreground">
-                  I read the posts, open the résumé, search the web, and move the page as I go. Attach a poster and I’ll
-                  turn it into an event.
+                  {inDeck
+                    ? 'I can move the slides, open any iteration of the architecture, and answer questions about Hogbot.'
+                    : 'I read the posts, open the résumé, search the web, and move the page as I go. Attach a poster and I’ll turn it into an event.'}
                 </p>
                 <Suggestions className="[&_[data-radix-scroll-area-viewport]]:pb-1">
                   {suggestions.map((s) => (
@@ -323,7 +463,7 @@ export default function AgentDock({ lang }: { lang: string }) {
               <PromptInputTextarea
                 value={text}
                 onChange={(e) => setText(e.currentTarget.value)}
-                placeholder={page.kind === 'post' ? 'Ask about this post…' : 'Ask about the writing, the work, or the world…'}
+                placeholder={inDeck ? 'Drive the deck or ask about Hogbot…' : page.kind === 'post' ? 'Ask about this post…' : 'Ask about the writing, the work, or the world…'}
                 className="min-h-[44px] text-sm"
               />
             </PromptInputBody>

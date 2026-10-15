@@ -2,13 +2,18 @@ import type { PageContext } from '@/lib/agent-state';
 import { listPosts } from '@/lib/site/content';
 import { PROJECTS } from '@/lib/site/projects';
 import { RESUME } from '@/lib/site/resume';
+import { ARCHITECTURE, DECK, HOGBOT_FACTS, METRICS, QUESTION_CLASSES, SLIDES } from '@/lib/deck/hogbot';
 
 /**
  * System prompt. The stable part (persona, site index, résumé summary) is
  * placed first so Anthropic prompt caching can reuse it; the page context —
  * which changes as the visitor moves around — goes at the end.
  */
-export async function buildSystemPrompt(context?: PageContext, deep = false): Promise<string> {
+export async function buildSystemPrompt(
+  context?: PageContext,
+  deep = false,
+  opts: { inPresentation?: boolean } = {}
+): Promise<string> {
   const posts = await listPosts().catch(() => []);
 
   const index = posts
@@ -45,6 +50,8 @@ Blog index (${posts.length} posts):
 ${index || '(index unavailable — use searchPosts)'}
 ${deep ? '\nDeep mode: the visitor asked for your most careful answer. Think it through, read sources fully, and be thorough where it earns its length.' : ''}`;
 
+  const section = opts.inPresentation ? presentationBrief() : gateBrief();
+
   const ctx = context
     ? `\n\nVisitor context (right now):
 - Page: ${describePage(context)}${
@@ -53,11 +60,67 @@ ${deep ? '\nDeep mode: the visitor asked for your most careful answer. Think it 
 This context is authoritative and refreshed on every message — it overrides anything earlier in the conversation about where the visitor is. If they say "this post", "this page", or "here", they mean the page above. If they ask about "this post" while not on a post, ask which one or offer the index; never assume it's a post from earlier in the chat. If highlight reports the passage isn't on the current page, don't retry — navigate there first or tell the visitor.`
     : '';
 
-  return stable + ctx;
+  return stable + section + ctx;
+}
+
+/** Rules for the hidden presentation when the visitor is anywhere else on the site. */
+function gateBrief(): string {
+  return `
+
+Private section: there is a password-protected presentation deck (Matt's AWS technical-communication talk about "Hogbot"). It is not linked anywhere and you never bring it up on your own. If the visitor asks for it with reasonable specificity — e.g. "take me to the AWS presentation", "open the interview deck", "the Hogbot talk", "the AWS deck" — reply with one short line asking for the password and nothing else. When they answer, call unlockPresentation with exactly what they typed (no trimming of punctuation, no guessing, never suggest or reveal a password). If it comes back ok, say in a few words that the deck is opening — the page transitions on its own. If not, say the password didn't match and offer one more try; after a second failure, let it go politely. Vague questions like "do you have any presentations?" get a one-line answer that there's a private deck that needs a password. Never describe the deck's contents from outside it.`;
+}
+
+/** The agent's brief while inside the unlocked deck. */
+function presentationBrief(): string {
+  const outline = SLIDES.map(
+    (s, i) => `Slide ${i + 1} — ${s.title} (${s.kicker}; ~${s.minutes} min)\n${s.notes.map((n) => `  • ${n}`).join('\n')}`
+  ).join('\n\n');
+
+  const arch = ARCHITECTURE.map(
+    (a) =>
+      `v${a.id} "${a.name}" — ${a.tagline}. ${a.summary}${
+        a.changed.length ? `\n  Changed: ${a.changed.join(' / ')}` : ''
+      }${a.pain?.length ? `\n  Pain: ${a.pain.join(' / ')}` : ''}\n  Components: ${a.nodes
+        .map((n) => `${n.label}${n.sub ? ` (${n.sub})` : ''}`)
+        .join(', ')}`
+  ).join('\n');
+
+  const metrics = METRICS.map(
+    (m) =>
+      `- ${m.label}: v1 ${m.byIteration[0]}${m.unit ?? ''} → v2 ${m.byIteration[1]}${m.unit ?? ''} → v3 ${m.byIteration[2]}${m.unit ?? ''}${
+        m.baseline ? ` (${m.baseline})` : ''
+      }${m.estimate ? ' [presenter estimate, not instrumented]' : ''}. ${m.note}`
+  ).join('\n');
+
+  return `
+
+You are now inside Matt's private presentation: "${DECK.title} — ${DECK.subtitle}" (${DECK.event}, ${DECK.date}). Matt is presenting it live to AWS interviewers, a mix of technical and non-technical leaders. Your two jobs: drive the deck when asked, and answer questions about Hogbot accurately from the material below. Keep the site's other tools, but the deck comes first here.
+
+Driving: gotoSlide({slide}) jumps by number or name; nextSlide / prevSlide step; setArchitecture({iteration, focus?}) opens the architecture slide at v1/v2/v3 and can spotlight a component by name. "Next", "go on", "back", "show the architecture", "show v2", "point at the webhook proxy", "jump to results" — act first, then one short line (or nothing if the action speaks for itself). Never narrate the whole slide unless asked.
+
+Answering: use the slide notes, the architecture detail, the metrics and the facts below. Numbers marked as presenter estimates should be described as such if someone asks how they were measured. If a question goes beyond this material, say so plainly rather than inventing specifics about Edgehog's systems. Match the asker: plain language for a business question, precise terms for a technical one. Keep answers short — this is a live talk.
+
+Deck outline:
+${outline}
+
+Architecture iterations:
+${arch}
+
+Metrics (slide 6):
+${metrics}
+Adoption: weekly mentions have grown steadily; Hogbot is tagged every day. Question classes it handles: ${QUESTION_CLASSES.join(' · ')}
+
+Facts about Hogbot:
+${HOGBOT_FACTS.map((f) => `- ${f}`).join('\n')}`;
 }
 
 /** One-line human description of where the visitor is, e.g. `post "Title" at /en/blog/...`. */
 export function describePage(context: PageContext): string {
+  if (context.kind === 'presentation') {
+    return `private presentation deck "Hogbot", slide ${context.slide ?? '?'} of ${context.slideCount ?? '?'}${
+      context.slideTitle ? ` "${context.slideTitle}"` : ''
+    }${context.archIteration ? `, architecture iteration v${context.archIteration} on screen` : ''} at ${context.path}`;
+  }
   const kind =
     context.kind === 'blog-index'
       ? context.category

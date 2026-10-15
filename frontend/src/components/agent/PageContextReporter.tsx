@@ -12,10 +12,11 @@ export default function PageContextReporter() {
   const setHighlight = useAgentStore((s) => s.setHighlight);
 
   useEffect(() => {
-    const parts = pathname.split('/').filter(Boolean); // [lang, ...]
+    const parts = pathname.split('/').filter(Boolean); // [lang, ...] — or [presentation, ...]
     const rest = parts.slice(1);
     let ctx: Partial<PageContext> = { path: pathname, kind: 'other', postSlug: undefined, category: undefined, selection: undefined };
-    if (rest.length === 0) ctx.kind = 'home';
+    if (parts[0] === 'presentation') ctx.kind = 'presentation';
+    else if (rest.length === 0) ctx.kind = 'home';
     else if (rest[0] === 'blog' && rest.length === 1) ctx.kind = 'blog-index';
     else if (rest[0] === 'blog' && rest.length === 2) ctx = { ...ctx, kind: 'blog-index', category: rest[1] };
     else if (rest[0] === 'blog' && rest.length >= 3) ctx = { ...ctx, kind: 'post', category: rest[1], postSlug: rest[2] };
@@ -26,7 +27,9 @@ export default function PageContextReporter() {
     // it (on client navigations that lands a little after the route change).
     const withTitle = () => {
       const title = document.title.replace(/\s·\sMatt Pest$/, '');
-      setPage({ ...ctx, title, postTitle: ctx.kind === 'post' ? title : undefined });
+      // The deck owns its own slide fields; never blank them from here.
+      if (ctx.kind === 'presentation') setPage({ ...ctx, title });
+      else setPage({ ...ctx, title, postTitle: ctx.kind === 'post' ? title : undefined, slide: undefined, slideCount: undefined, slideTitle: undefined, archIteration: undefined });
     };
     withTitle();
     const titleEl = document.querySelector('title');
@@ -39,7 +42,9 @@ export default function PageContextReporter() {
         ? (CATEGORY_HUE[ctx.category ?? ''] ?? CATEGORY_HUE.default)
         : ctx.kind === 'resume'
           ? CATEGORY_HUE.resume
-          : CATEGORY_HUE.default;
+          : ctx.kind === 'presentation'
+            ? CATEGORY_HUE.physics // amber
+            : CATEGORY_HUE.default;
     setHue(hue);
     setHighlight(null);
     if (typeof CSS !== 'undefined' && 'highlights' in CSS) (CSS as any).highlights.delete('agent-highlight');

@@ -55,11 +55,27 @@ export function readStoredFieldVariant(): FieldVariant | null {
 export interface PageContext {
   path: string;
   title: string;
-  kind: 'home' | 'blog-index' | 'post' | 'resume' | 'page' | 'other';
+  kind: 'home' | 'blog-index' | 'post' | 'resume' | 'page' | 'presentation' | 'other';
   postSlug?: string;
   postTitle?: string;
   category?: string;
   selection?: string;
+  /** Presentation only: 1-based slide number, total, and the slide's title. */
+  slide?: number;
+  slideCount?: number;
+  slideTitle?: string;
+  /** Presentation only: which architecture iteration is on screen. */
+  archIteration?: 1 | 2 | 3;
+}
+
+/** The slide deck's live state — written by the deck and by the agent's deck tools. */
+export interface DeckState {
+  /** 0-based slide index. */
+  slide: number;
+  iteration: 1 | 2 | 3;
+  /** Architecture node id the agent (or presenter) is pointing at. */
+  focus: string | null;
+  notesOpen: boolean;
 }
 
 export interface AgentState {
@@ -79,6 +95,9 @@ export interface AgentState {
   draft: string | null;
   /** Which ambient shader is drawn behind the page. Persisted per visitor. */
   fieldVariant: FieldVariant;
+  deck: DeckState;
+  /** A full-screen reveal in progress (set after the presentation unlocks). */
+  reveal: 'presentation' | null;
 
   setMood: (mood: Mood) => void;
   setFieldVariant: (variant: FieldVariant) => void;
@@ -92,6 +111,8 @@ export interface AgentState {
   toggleDock: () => void;
   setDeep: (deep: boolean) => void;
   setDraft: (draft: string | null) => void;
+  setDeck: (deck: Partial<DeckState>) => void;
+  setReveal: (reveal: 'presentation' | null) => void;
 }
 
 export const useAgentStore = create<AgentState>((set, get) => ({
@@ -109,6 +130,8 @@ export const useAgentStore = create<AgentState>((set, get) => ({
   // Server and first client render agree on the default; AmbientField applies
   // the stored choice after mount so hydration never mismatches.
   fieldVariant: 'grain',
+  deck: { slide: 0, iteration: 1, focus: null, notesOpen: false },
+  reveal: null,
 
   setMood: (mood) => set({ mood }),
   setFieldVariant: (fieldVariant) => {
@@ -132,6 +155,8 @@ export const useAgentStore = create<AgentState>((set, get) => ({
   toggleDock: () => set((s) => ({ dockOpen: !s.dockOpen })),
   setDeep: (deep) => set({ deep }),
   setDraft: (draft) => set({ draft }),
+  setDeck: (deck) => set((s) => ({ deck: { ...s.deck, ...deck } })),
+  setReveal: (reveal) => set({ reveal }),
 }));
 
 /** Field targets derived from mood — what the shader lerps toward. */

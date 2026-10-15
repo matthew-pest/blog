@@ -15,7 +15,13 @@ function getLocale(request: NextRequest): string | undefined {
     let languages = new Negotiator({ headers: negotiatorHeaders }).languages();
     // @ts-ignore locales are readonly
     const locales: string[] = i18n.locales;
-    return matchLocale(languages, locales, i18n.defaultLocale);
+    try {
+        return matchLocale(languages, locales, i18n.defaultLocale);
+    } catch {
+        // Clients without a usable Accept-Language (curl, some bots) send "*",
+        // which the matcher rejects; fall back rather than 500.
+        return i18n.defaultLocale;
+    }
 }
 
 export function proxy(request: NextRequest) {
@@ -49,6 +55,7 @@ export function proxy(request: NextRequest) {
 
 export const config = {
     // Locale-prefix everything except Next internals, API routes, the MCP App
-    // widget (rendered inside other hosts' iframes) and static files.
-    matcher: ['/((?!_next|api|mcp-app|.*\\..*).*)'],
+    // widget (rendered inside other hosts' iframes), the private presentation
+    // (its own root layout, no locale) and static files.
+    matcher: ['/((?!_next|api|mcp-app|presentation|.*\\..*).*)'],
 };

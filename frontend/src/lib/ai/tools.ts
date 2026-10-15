@@ -40,7 +40,7 @@ export const eventSchema = z.object({
 
 export type ExtractedEvent = z.infer<typeof eventSchema>;
 
-export const agentTools = {
+export const siteTools = {
   searchPosts: tool({
     description:
       "Search Matt's blog posts by topic. Returns the best-matching posts with an excerpt. Use before answering anything about what Matt has written.",
@@ -141,4 +141,55 @@ export const agentTools = {
   }),
 };
 
+/**
+ * Gate to the hidden presentation. Only offered outside the presentation. The
+ * browser posts the password to /api/presentation/unlock; the model never
+ * sees whether a guess was close, only ok/not ok.
+ */
+export const gateTools = {
+  unlockPresentation: tool({
+    description:
+      'Unlock the private AWS presentation deck with the password the visitor typed. Call it with the password verbatim (exact match required) and nothing else. On success the page transitions to the deck by itself.',
+    inputSchema: z.object({ password: z.string().describe('Exactly what the visitor typed as the password') }),
+    outputSchema: z.object({ ok: z.boolean(), reason: z.string().optional() }),
+  }),
+};
+
+/** Deck control. Route-locked: only offered when the visitor is inside the unlocked presentation. */
+export const deckTools = {
+  gotoSlide: tool({
+    description:
+      'Jump the presentation to a slide. Accepts a 1-based number or a name: title, problem, solution, architecture, tradeoffs, results, close.',
+    inputSchema: z.object({ slide: z.union([z.number().int(), z.string()]).describe('Slide number (1-based) or slide name') }),
+    outputSchema: z.object({ ok: z.boolean(), slide: z.number().optional(), title: z.string().optional(), reason: z.string().optional() }),
+  }),
+  nextSlide: tool({
+    description: 'Advance the presentation by one slide ("next", "go on", "continue").',
+    inputSchema: z.object({}),
+    outputSchema: z.object({ ok: z.boolean(), slide: z.number(), title: z.string() }),
+  }),
+  prevSlide: tool({
+    description: 'Go back one slide ("back", "previous").',
+    inputSchema: z.object({}),
+    outputSchema: z.object({ ok: z.boolean(), slide: z.number(), title: z.string() }),
+  }),
+  setArchitecture: tool({
+    description:
+      'Show the architecture slide at a given iteration (1 = poll the cloud, 2 = webhooks and a monolith, 3 = the learning loop) and optionally spotlight one component by name (e.g. "webhook proxy", "skills repo", "LangSmith", "Hogbot"). Use when asked to show, compare, or explain the architecture or any of its parts.',
+    inputSchema: z.object({
+      iteration: z.union([z.literal(1), z.literal(2), z.literal(3)]),
+      focus: z.string().optional().describe('Component to spotlight, or omit to clear'),
+    }),
+    outputSchema: z.object({ ok: z.boolean(), iteration: z.number(), focus: z.string().nullable(), reason: z.string().optional() }),
+  }),
+};
+
+/** Every tool, for UI typing. The chat route hands the model a subset per request. */
+export const agentTools = { ...siteTools, ...gateTools, ...deckTools };
+
 export type AgentToolSet = typeof agentTools;
+
+/** Pick the tool set for a request: deck tools only inside the unlocked presentation. */
+export function toolsFor(opts: { inPresentation: boolean }) {
+  return opts.inPresentation ? { ...siteTools, ...deckTools } : { ...siteTools, ...gateTools };
+}

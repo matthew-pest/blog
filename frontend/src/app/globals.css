@@ -328,6 +328,41 @@ body {
   html { scroll-behavior: auto; }
 }
 
+/* ------------------------------------------------------------------ */
+/* Presentation deck                                                    */
+/* ------------------------------------------------------------------ */
+
+/* A quieter, warmer palette for the deck: amber accent, cool secondary. */
+.deck-theme {
+  --glow: oklch(0.82 0.13 70);
+  --glow-2: oklch(0.8 0.1 225);
+  --ring: oklch(0.82 0.13 70);
+  --chart-1: oklch(0.82 0.13 70);
+  --chart-2: oklch(0.8 0.1 225);
+}
+.deck-theme ::selection { background: oklch(0.82 0.13 70 / 40%); }
+.deck-theme .ambient-field__scrim {
+  background: linear-gradient(to bottom, oklch(0.13 0.012 285 / 25%), oklch(0.13 0.012 285 / 55%));
+}
+
+/* Type scale tied to the stage width (the stage is a container). */
+.deck-stage { font-size: clamp(13px, 1.1cqw, 21px); }
+.deck-h1 { font-size: clamp(2.4rem, 5.4cqw, 6rem); }
+.deck-h2 { font-size: clamp(1.7rem, 3.2cqw, 3.4rem); }
+.deck-h3 { font-size: clamp(1.05rem, 1.5cqw, 1.6rem); line-height: 1.15; }
+.deck-lede { font-size: clamp(0.95rem, 1.3cqw, 1.35rem); line-height: 1.45; text-wrap: pretty; }
+.deck-body { font-size: clamp(0.85rem, 1.05cqw, 1.1rem); }
+.deck-small { font-size: clamp(0.72rem, 0.85cqw, 0.9rem); }
+.deck-stage .eyebrow { font-size: clamp(0.62rem, 0.78cqw, 0.8rem); }
+
+/* Animated flow along architecture edges. */
+@keyframes deck-flow { to { stroke-dashoffset: -32; } }
+.deck-flow { stroke-dasharray: 5 11; animation: deck-flow 1.4s linear infinite; }
+.deck-flow-back { animation-direction: reverse; }
+@media (prefers-reduced-motion: reduce) {
+  .deck-flow { animation: none; stroke-dasharray: none; opacity: 0.4; }
+}
+
 /* React slideshow (legacy post component). */
 .react-slideshow-container [aria-label="Previous Slide"] { margin-left: 1rem; }
 .react-slideshow-container [aria-label="Next Slide"] { margin-right: 1rem; }

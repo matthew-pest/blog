@@ -6,10 +6,11 @@ import {
   streamText,
   toUIMessageStream,
 } from 'ai';
-import { agentTools } from '@/lib/ai/tools';
+import { agentTools, toolsFor } from '@/lib/ai/tools';
 import { buildSystemPrompt, describePage } from '@/lib/ai/system';
 import { checkRateLimit, clientIp } from '@/lib/ai/rate-limit';
 import { CATEGORY_HUE } from '@/lib/agent-state';
+import { isUnlockedFromCookieHeader } from '@/lib/presentation/auth';
 import type { AgentStatus, AgentUIMessage, ChatRequestBody } from '@/lib/ai/types';
 
 export const maxDuration = 60;
@@ -76,7 +77,12 @@ export async function POST(req: Request) {
   const deep = body.deep === true;
   const model = deep ? MODELS.deep : MODELS.fast;
   const fallbacks = deep ? FALLBACKS.deep : FALLBACKS.fast;
-  const system = await buildSystemPrompt(body.context, deep);
+  // Route-locked tools: the deck controls exist only when the visitor is on the
+  // presentation *and* this browser holds the access cookie. Neither the page
+  // context (client-supplied) nor the cookie alone is enough.
+  const inPresentation = body.context?.kind === 'presentation' && (await isUnlockedFromCookieHeader(req.headers.get('cookie')));
+  const tools = toolsFor({ inPresentation });
+  const system = await buildSystemPrompt(body.context, deep, { inPresentation });
 
   const modelMessages = await convertToModelMessages(body.messages);
 
@@ -106,7 +112,7 @@ export async function POST(req: Request) {
         // AI SDK 7: system text goes in `instructions`, never in `messages`.
         instructions: system,
         messages: modelMessages,
-        tools: agentTools,
+        tools,
         stopWhen: stepCountIs(8),
         providerOptions: {
           gateway: { models: fallbacks },
@@ -136,6 +142,15 @@ export async function POST(req: Request) {
               case 'highlight':
                 status({ mood: 'acting', label: 'Moving the page' });
                 break;
+              case 'unlockPresentation':
+                status({ mood: 'acting', label: 'Checking the password' });
+                break;
+              case 'gotoSlide':
+              case 'nextSlide':
+              case 'prevSlide':
+              case 'setArchitecture':
+                status({ mood: 'acting', label: 'Moving the deck', hue: CATEGORY_HUE.physics });
+                break;
             }
           } else if (chunk.type === 'tool-result' && chunk.toolName === 'readPost') {
             const category = (chunk.output as { category?: string } | undefined)?.category;
@@ -149,7 +164,7 @@ export async function POST(req: Request) {
       writer.merge(
         toUIMessageStream({
           stream: result.stream,
-          tools: agentTools,
+          tools,
           sendReasoning: true,
           sendSources: true,
           sendStart: true,
