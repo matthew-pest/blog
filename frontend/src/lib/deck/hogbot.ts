@@ -684,7 +684,7 @@ export const METRICS: Metric[] = [
     id: 'brevity',
     label: 'Answer length',
     unit: 'words',
-    byIteration: [520, 310, 150],
+    byIteration: [820, 310, 150],
     lowerIsBetter: true,
     note: 'v1 and v2 were far too verbose. A brevity-tuned system prompt and answer templates in skills brought replies down to what a trader reads in a Slack thread between trades (and on a phone out of the office); detail is one follow-up away.',
   },
