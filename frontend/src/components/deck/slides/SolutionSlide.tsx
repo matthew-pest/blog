@@ -6,7 +6,7 @@ import { Card, Item, SlideHeader, Stagger } from '../primitives';
 
 const STEPS = [
   { icon: AtSign, title: 'Tag it in Slack', sub: 'screenshot + a few words — nothing new to learn' },
-  { icon: ScanSearch, title: 'Read the screenshot', sub: 'the trade they mean, the instrument, qty, edge' },
+  { icon: ScanSearch, title: 'Read the screenshot', sub: 'the trade they mean, instrument, qty, edge — and the time, which bounds every query' },
   { icon: BookOpen, title: 'Pick a skill', sub: 'a playbook with a deterministic script for this question' },
   { icon: Plug, title: 'Run it; explore on a miss', sub: 'script first, then MCP: Timescale · drop-copy · lakes · Loki · repos' },
   { icon: MessageCircleQuestion, title: 'Ask back when unsure', sub: 'more detail, or permission to act — progress shown in the thread' },
@@ -16,7 +16,7 @@ const STEPS = [
 const PRINCIPLES = [
   { icon: Workflow, title: 'No workflow change', body: 'Slack is the interface. OpenCode is the brain. Traders never leave the thread.' },
   { icon: Fingerprint, title: 'Scripts first, explore second', body: 'Deterministic lookups through skills; MCP servers to course-correct and refine the script when one falls short.' },
-  { icon: Hand, title: 'Human in the loop', body: 'Ambiguous ask? Risky action? Hogbot asks first, and posts progress, in the same thread.' },
+  { icon: Hand, title: 'Human in the loop', body: 'Ambiguous ask? Risky action? Hogbot asks first, in the thread — and a lesson learned is one approval from becoming an eval example.' },
 ];
 
 export default function SolutionSlide() {

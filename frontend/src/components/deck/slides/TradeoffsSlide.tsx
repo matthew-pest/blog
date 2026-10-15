@@ -13,9 +13,9 @@ const TRADEOFFS = [
   },
   {
     icon: Boxes,
-    chose: 'One session, optional cheaper workers',
+    chose: 'One session, optional subagents',
     over: 'a planner with mandatory subagents',
-    why: 'Context stays in one place; the best model plans, Haiku-class models execute.',
+    why: 'Context stays in one place; a state-of-the-art main agent does most of the work, smaller models only for simple subtasks.',
     cost: 'Longer single contexts; parallelism only when it pays.',
   },
   {
@@ -36,14 +36,14 @@ const TRADEOFFS = [
     icon: Scissors,
     chose: 'Brevity and a max-steps budget',
     over: 'open-ended reasoning',
-    why: 'Traders read on a phone between trades and won’t wait ten minutes.',
+    why: 'Traders read it in the Slack desktop app between trades and won’t wait ten minutes; the phone, out of office, is a bonus.',
     cost: 'Detail is one follow-up away; a hard budget can cut a deep dig short.',
   },
   {
     icon: Hand,
     chose: 'Human in the loop',
     over: 'full autonomy',
-    why: 'Ambiguous asks and actions get a question back in the thread.',
+    why: 'Ambiguous asks and actions get a question back in the thread — and lessons learned get approved into the eval set.',
     cost: 'Slower turnaround on exactly those asks.',
   },
 ];
