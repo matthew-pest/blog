@@ -114,10 +114,10 @@ export const SLIDES: SlideMeta[] = [
     aliases: ['results', 'metrics', 'impact', 'numbers', 'outcomes', 'kpis'],
     notes: [
       'Correctness: Hogbot surfaces the right answer about nine times in ten now; the earliest iterations managed one in three at best.',
-      'Speed: the human path was hours to next-day depending on who was free; v1 and v2 answers were verbose and slow; v3 answers often land in seconds, a minute or two at most.',
+      'Speed: the human path was minutes to next-day depending on who was free; v1 and v2 answers were verbose and slow; v3 answers often land in seconds, a minute or two at most.',
       'Adoption: traders tag Hogbot every day and ask it to do the work a quant or developer would have done — "what is this parameter set to", "do we have a param that could tune this scenario", "was system X running", "how much faster did we need to be", "has this algo been trading too aggressively, and why", "schedule a daily report running this script and DM me the results".',
       'Capability grows with the skills library: 40–50 skills today, maintained by the agent itself and reviewed by the team; and with the data engineering it motivated — the pcap-backed Parquet lake answers queue-priority and quote-age questions nobody at the firm could answer in reasonable time before.',
-      'The figures for v1/v2 time, cost and answer length on this slide are presenter estimates from operating the system, not instrumented measurements; correctness, skill counts and "seconds in v3" are what we observe.',
+      'Latency is measured in LangSmith. Over 15 July – 15 October 2026, trace latency P50 fell from roughly 150–250 seconds to about 50 seconds and P99 from 500–1,000 seconds (with spikes past 1,400) to 100–200 seconds; LLM call latency P99 fell from 200–250 seconds to 40–60 seconds and P50 from about 15 to 5 seconds. The step change in early September is the scripts-first release.',
     ],
   },
   {
@@ -169,7 +169,25 @@ export interface ArchNode {
   changed?: boolean;
   /** Drawn faded: exists but the agent could not reach it. */
   unreachable?: boolean;
+  /** Optional screenshot shown in the tooltip (served from /api/presentation/asset). */
+  image?: { src: string; alt: string };
 }
+
+/** Real screenshots used as examples in the deck (gated like the deck itself). */
+export const DECK_IMAGES = {
+  slackThread: {
+    src: 'slack-thread.png',
+    alt: 'A real thread: a trader posts a screenshot of the trade log, asks "did normal taker shoot", and Hogbot shows each step it takes before answering in-thread.',
+  },
+  traceLatency: {
+    src: 'trace-latency.png',
+    alt: 'LangSmith trace latency, Jul 15 – Oct 15 2026: P50 fell from roughly 150–250 s to about 50 s; P99 from 500–1,000 s to 100–200 s.',
+  },
+  llmLatency: {
+    src: 'llm-latency.png',
+    alt: 'LangSmith LLM call latency, Jul 15 – Oct 15 2026: P99 fell from roughly 200–250 s to 40–60 s; P50 from about 15 s to 5 s.',
+  },
+} as const;
 
 export interface ArchEdge {
   from: string;
@@ -394,6 +412,7 @@ export const ARCHITECTURE: ArchIteration[] = [
         w: NW + 30,
         h: NH + 6,
         changed: true,
+        image: DECK_IMAGES.slackThread,
         tip: 'Opens an outbound websocket to Slack (Socket Mode) — nothing comes in through the firewall. Built on Vercel\'s Chat SDK with the Slack adapter; renders OpenCode\'s output into Block Kit without the old breakage, streams progress and step updates into the thread, and relays clarifying questions and permission prompts.',
       },
       {
@@ -506,6 +525,7 @@ export const ARCHITECTURE: ArchIteration[] = [
         y: 248,
         w: NW + 30,
         h: NH + 6,
+        image: DECK_IMAGES.slackThread,
         tip: 'Unchanged from v2: outbound Socket Mode websocket, Vercel Chat SDK with the Slack adapter, progress and step updates in the thread, questions and permission prompts relayed.',
       },
       {
@@ -530,6 +550,7 @@ export const ARCHITECTURE: ArchIteration[] = [
         w: NW + 30,
         h: NH + 20,
         changed: true,
+        image: DECK_IMAGES.llmLatency,
         tip: 'Same monolith as v2, now biased to run a skill\'s script first and only reach for MCP exploration when the script fails or a trader flags a miss. A brevity-tuned prompt and a max-steps budget keep answers to seconds, a minute or two at most.',
       },
       {
@@ -553,6 +574,7 @@ export const ARCHITECTURE: ArchIteration[] = [
         w: NW + 30,
         h: NH + 6,
         changed: true,
+        image: DECK_IMAGES.traceLatency,
         tip: 'Every run is traced. A nightly job replays a curated set of questions with known answers and flags regressions before traders see them — the safety net that makes self-editing skills acceptable. New examples enter the set through the human-in-the-loop approval in Slack: a lesson learned is one approval away from being a regression test.',
       },
       {
@@ -629,8 +651,6 @@ export interface Metric {
   baseline?: string;
   /** Lower is better (speed, cost, length). */
   lowerIsBetter?: boolean;
-  /** Presenter estimate rather than an instrumented measurement. */
-  estimate?: boolean;
   note: string;
 }
 
@@ -648,9 +668,8 @@ export const METRICS: Metric[] = [
     unit: 'min',
     byIteration: [20, 8, 1],
     display: ['~20 min', '~8 min', 'seconds'],
-    baseline: 'Human path: hours to next day',
+    baseline: 'Human path: minutes to next day',
     lowerIsBetter: true,
-    estimate: true,
     note: 'v1 waited on polling, multi-session hand-offs and long verbose reasoning; v3 runs a script first under a max-steps budget and usually answers in seconds, a minute or two at most.',
   },
   {
@@ -659,7 +678,6 @@ export const METRICS: Metric[] = [
     unit: '×',
     byIteration: [1, 0.5, 0.3],
     lowerIsBetter: true,
-    estimate: true,
     note: 'Relative to v1. Mandatory subagent fan-out burned tokens on summaries that were thrown away; scripts that go straight to the right source, a step budget and smaller models for the simple subagent tasks make each answer cheaper.',
   },
   {
@@ -668,7 +686,6 @@ export const METRICS: Metric[] = [
     unit: 'words',
     byIteration: [520, 310, 150],
     lowerIsBetter: true,
-    estimate: true,
     note: 'v1 and v2 were far too verbose. A brevity-tuned system prompt and answer templates in skills brought replies down to what a trader reads in a Slack thread between trades (and on a phone out of the office); detail is one follow-up away.',
   },
   {
@@ -679,7 +696,7 @@ export const METRICS: Metric[] = [
   },
 ];
 
-/** Weekly Hogbot mentions, oldest first — adoption curve for the sparkline (presenter estimate). */
+/** Weekly Hogbot mentions, oldest first — adoption curve for the sparkline. */
 export const ADOPTION_WEEKLY = [2, 3, 5, 4, 8, 11, 14, 19, 23, 28, 31, 36, 40, 44];
 
 export const QUESTION_CLASSES = [
@@ -700,6 +717,8 @@ export const HOGBOT_FACTS = [
   'Deployment configs live in GitLab CI, Dockerfiles, compose files and sometimes TOML. Params live in per-product-instance TOML files or a params schema in the database. ~300 repos, many deployed several times with different configs, are mirrored locally (clone on startup, fetch nightly). Local repo access beat vector/graph RAG immediately; RAG took too long to show results.',
   'Agent evolution: v1 hand-written monolith scripts per question (untenable: a service being down, ICE vs CME data shapes, new questions with no script — Matt could not keep up editing them) with a planner + mandatory subagent fleet. v2 skills as guides/docs with free data fetching over MCP (too non-deterministic; details missed because not all guides fit in context). v3 bias toward skills with deterministic scripts, using MCP to course-correct and evolve the scripts — fast optimised deterministic lookups plus generalised investigation.',
   'Latency came down from reusable scripts in skills instead of guided MCP tool calls, a system prompt tuned for brevity, and an explicit max-steps budget in the agent definition so capable models (Astra, Fable) cannot spin for 10–20 minutes. Current release: answers often in seconds, a minute or two max. v1/v2 were far too verbose and slow and often still wrong. Better models help, but the gains hold without frontier models.',
+  'Measured in LangSmith (15 Jul – 15 Oct 2026): trace latency P50 fell from ~150–250 s to ~50 s and P99 from ~500–1,000 s (spikes to 1,400 s) to ~100–200 s; LLM call latency P99 fell from ~200–250 s to ~40–60 s and P50 from ~15 s to ~5 s. The sharp drop in early September coincides with the scripts-first release (v3). Both charts are on the results slide and in the architecture tooltips for the Hogbot and LangSmith nodes.',
+  'A real example (on the solution slide and the proxy tooltip): a trader posts a screenshot of the trade log and asks "did normal taker shoot". Hogbot shows its steps in the thread — resolve instrument, timescale-db SQL, Loki logs, drop-copy SQL, more timescale and drop-copy queries, then a Grafana deeplink — and answers: normal Taker filled 11 @ −0.90 on HE Feb76/Nov65 at 12:33:39.648 CT just before the visible prints; a later normal-Taker reload was blocked by GLOBAL_INSTRUMENT_LOCK despite sufficient edge; SL separately filled 4 @ −0.90 at 12:33:40.462, with links to the Taker logs and drop copy and the session id.',
   'Model selection matters. Hogbot defaults to state-of-the-art models everywhere; the main agent typically does all the work itself. Some subagents are defined with smaller models such as Haiku for simple tasks. Better models help, but the v3 gains do not depend on being on frontier models.',
   'Slack connectivity: v1 used a cloud DB that an on-prem proxy polled. v2 and v3 use Slack Socket Mode — the Slack app connects over an outbound websocket (Slack positions it as a sandbox-ish feature, but it was the better option: no inbound ingress). The proxy uses Vercel\'s Chat SDK with the Slack adapter; some Block Kit elements are still handled by hand, abstracted enough to stop rendering errors from OpenCode\'s response text, with refined progress and step updates in the thread so traders can see what Hogbot is doing without leaving it. There are no inbound webhooks.',
   'MCP coverage expanded over time: Loki, Prometheus (v1 onward), TimescaleDB, the drop-copy DB MCP (v2 and up). The pcap-backed MBO Parquet lake is reached through its own skill and reference scripts that query it with DuckDB, not an MCP server.',

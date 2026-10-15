@@ -30,7 +30,7 @@ export default function TitleSlide() {
 
       {/* Slack → agent → data, as a quiet emblem */}
       <Item className="hidden lg:block">
-        <motion.svg viewBox="0 0 420 300" className="w-full max-w-[520px] overflow-visible text-foreground/70" aria-hidden>
+        <motion.svg viewBox="-30 0 480 300" className="w-full max-w-[520px] overflow-visible text-foreground/70" aria-hidden>
           <defs>
             <linearGradient id="title-line" x1="0" x2="1">
               <stop offset="0" stopColor="var(--glow-2)" />
@@ -79,7 +79,7 @@ function Emblem({ x, y, label, delay, accent, children }: { x: number; y: number
       <foreignObject x={x - 16} y={y - 16} width={32} height={32}>
         <div className={accent ? 'grid size-8 place-items-center text-glow' : 'grid size-8 place-items-center text-foreground/80'}>{children}</div>
       </foreignObject>
-      <text x={x} y={y + r + 22} textAnchor="middle" fontSize="12" fontFamily="var(--font-mono)" fill="var(--muted-foreground)">
+      <text x={x} y={y + r + (accent ? 48 : 22)} textAnchor="middle" fontSize="12" fontFamily="var(--font-mono)" fill="var(--muted-foreground)">
         {label}
       </text>
     </motion.g>

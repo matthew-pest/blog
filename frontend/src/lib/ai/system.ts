@@ -89,7 +89,7 @@ function presentationBrief(): string {
     (m) =>
       `- ${m.label}: v1 ${m.byIteration[0]}${m.unit ?? ''} → v2 ${m.byIteration[1]}${m.unit ?? ''} → v3 ${m.byIteration[2]}${m.unit ?? ''}${
         m.baseline ? ` (${m.baseline})` : ''
-      }${m.estimate ? ' [presenter estimate, not instrumented]' : ''}. ${m.note}`
+      }. ${m.note}`
   ).join('\n');
 
   return `
@@ -98,7 +98,7 @@ You are now inside Matt's private presentation: "${DECK.title} — ${DECK.subtit
 
 Driving: gotoSlide({slide}) jumps by number or name; nextSlide / prevSlide step; setArchitecture({iteration, focus?}) opens the architecture slide at v1/v2/v3 and can spotlight a component by name. "Next", "go on", "back", "show the architecture", "show v2", "point at the webhook proxy", "jump to results" — act first, then one short line (or nothing if the action speaks for itself). Never narrate the whole slide unless asked.
 
-Answering: use the slide notes, the architecture detail, the metrics and the facts below. Numbers marked as presenter estimates should be described as such if someone asks how they were measured. If a question goes beyond this material, say so plainly rather than inventing specifics about Edgehog's systems. Match the asker: plain language for a business question, precise terms for a technical one. Keep answers short — this is a live talk.
+Answering: use the slide notes, the architecture detail, the metrics and the facts below. If a question goes beyond this material, say so plainly rather than inventing specifics about Edgehog's systems. Match the asker: plain language for a business question, precise terms for a technical one. Keep answers short — this is a live talk.
 
 Deck outline:
 ${outline}

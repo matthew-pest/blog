@@ -1,9 +1,10 @@
 'use client';
 
 import { motion } from 'motion/react';
-import { ADOPTION_WEEKLY, METRICS, QUESTION_CLASSES, type Metric } from '@/lib/deck/hogbot';
+import { DECK_IMAGES, METRICS, QUESTION_CLASSES, type Metric } from '@/lib/deck/hogbot';
 import { cn } from '@/lib/utils';
 import { Card, Item, SlideHeader, Stagger } from '../primitives';
+import Figure, { deckAsset } from '../Figure';
 
 const LABELS = ['v1', 'v2', 'v3'];
 
@@ -41,33 +42,10 @@ function Bars({ metric, className }: { metric: Metric; className?: string }) {
   );
 }
 
-function Sparkline({ values, className }: { values: number[]; className?: string }) {
-  const w = 240;
-  const h = 64;
-  const max = Math.max(...values);
-  const pts = values.map((v, i) => [(i / (values.length - 1)) * w, h - (v / max) * (h - 6) - 2] as const);
-  const d = pts.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p[0].toFixed(1)} ${p[1].toFixed(1)}`).join(' ');
-  const area = `${d} L ${w} ${h} L 0 ${h} Z`;
-  return (
-    <svg viewBox={`0 0 ${w} ${h}`} className={cn('w-full overflow-visible', className)} aria-hidden>
-      <defs>
-        <linearGradient id="spark-fill" x1="0" x2="0" y1="0" y2="1">
-          <stop offset="0" stopColor="var(--glow)" stopOpacity="0.35" />
-          <stop offset="1" stopColor="var(--glow)" stopOpacity="0" />
-        </linearGradient>
-      </defs>
-      <motion.path d={area} fill="url(#spark-fill)" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 1.2, duration: 0.8 }} />
-      <motion.path d={d} fill="none" stroke="var(--glow)" strokeWidth="2" vectorEffect="non-scaling-stroke" initial={{ pathLength: 0 }} animate={{ pathLength: 1 }} transition={{ delay: 0.5, duration: 1.4, ease: 'easeInOut' }} />
-      <motion.circle cx={pts[pts.length - 1][0]} cy={pts[pts.length - 1][1]} r="3.5" fill="var(--glow)" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 1.9 }} />
-    </svg>
-  );
-}
-
 export default function ResultsSlide() {
   const correctness = METRICS.find((m) => m.id === 'correctness')!;
   const skills = METRICS.find((m) => m.id === 'skills')!;
   const others = METRICS.filter((m) => ['speed', 'cost', 'brevity'].includes(m.id));
-  const anyEstimate = METRICS.some((m) => m.estimate);
 
   return (
     <div className="flex flex-col gap-[1.3em]">
@@ -89,10 +67,7 @@ export default function ResultsSlide() {
         <div className="grid gap-[0.8em] sm:grid-cols-3">
           {others.map((m) => (
             <Card key={m.id} className="flex flex-col gap-[0.6em]">
-              <p className="eyebrow deck-small">
-                {m.label}
-                {m.estimate && <sup className="text-glow"> †</sup>}
-              </p>
+              <p className="eyebrow deck-small">{m.label}</p>
               <Bars metric={m} />
               {m.baseline && <p className="deck-small text-muted-foreground">{m.baseline}</p>}
             </Card>
@@ -100,18 +75,19 @@ export default function ResultsSlide() {
         </div>
       </Stagger>
 
-      <Stagger className="grid gap-[0.8em] lg:grid-cols-[1fr_1fr_1.3fr]">
+      <Stagger className="grid gap-[0.8em] lg:grid-cols-[1fr_1.4fr_1.3fr]">
         <Card className="flex flex-col gap-[0.4em]">
           <p className="eyebrow deck-small">Capability growth · {skills.label.toLowerCase()}</p>
           <Bars metric={skills} />
           <p className="deck-small text-muted-foreground">Written and revised by the agent, reviewed by the team, versioned in GitLab.</p>
         </Card>
-        <Card className="flex flex-col gap-[0.4em]">
-          <p className="eyebrow deck-small">
-            Adoption · weekly mentions<sup className="text-glow"> †</sup>
-          </p>
-          <Sparkline values={ADOPTION_WEEKLY} className="mt-[0.4em]" />
-          <p className="deck-small text-muted-foreground">Tagged every day; asked to do work a quant or developer would have done.</p>
+        <Card className="flex flex-col gap-[0.5em]">
+          <p className="eyebrow deck-small">Latency, measured · LangSmith · Jul–Oct 2026</p>
+          <div className="grid grid-cols-2 gap-[0.6em]">
+            <Figure src={deckAsset(DECK_IMAGES.traceLatency.src)} alt={DECK_IMAGES.traceLatency.alt} imgClassName="max-h-[9em]" caption={<span>Trace P50 <span className="text-foreground">~200 s → ~50 s</span></span>} />
+            <Figure src={deckAsset(DECK_IMAGES.llmLatency.src)} alt={DECK_IMAGES.llmLatency.alt} imgClassName="max-h-[9em]" caption={<span>LLM P99 <span className="text-foreground">~220 s → ~50 s</span></span>} />
+          </div>
+          <p className="deck-small text-muted-foreground">The step down in early September is the scripts-first release. Click to enlarge.</p>
         </Card>
         <Card className="flex flex-col gap-[0.4em]">
           <p className="eyebrow deck-small">The question space it covers now</p>
@@ -126,11 +102,6 @@ export default function ResultsSlide() {
         </Card>
       </Stagger>
 
-      {anyEstimate && (
-        <Item as="p" className="deck-small text-muted-foreground/70">
-          † operating estimates, not instrumented measurements; correctness and skill counts are tracked.
-        </Item>
-      )}
     </div>
   );
 }

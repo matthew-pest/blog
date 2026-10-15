@@ -3,6 +3,8 @@
 import { motion } from 'motion/react';
 import { AtSign, ScanSearch, BookOpen, Plug, MessageCircleQuestion, Reply, Workflow, Fingerprint, Hand } from 'lucide-react';
 import { Card, Item, SlideHeader, Stagger } from '../primitives';
+import Figure, { deckAsset } from '../Figure';
+import { DECK_IMAGES } from '@/lib/deck/hogbot';
 
 const STEPS = [
   { icon: AtSign, title: 'Tag it in Slack', sub: 'screenshot + a few words — nothing new to learn' },
@@ -30,13 +32,6 @@ export default function SolutionSlide() {
 
       {/* Flow */}
       <Stagger className="relative grid gap-[0.7em] sm:grid-cols-3 xl:grid-cols-6">
-        <motion.div
-          aria-hidden
-          className="pointer-events-none absolute left-[6%] right-[6%] top-[1.9em] hidden h-px origin-left bg-gradient-to-r from-glow-2 via-glow to-glow-2 xl:block"
-          initial={{ scaleX: 0 }}
-          animate={{ scaleX: 1 }}
-          transition={{ delay: 0.3, duration: 1.2, ease: 'easeInOut' }}
-        />
         {STEPS.map((s, i) => (
           <Item key={s.title} className="relative flex flex-col gap-[0.5em] rounded-2xl border border-border/60 bg-background/35 p-[0.9em]">
             <div className="flex items-center gap-[0.6em]">
@@ -44,6 +39,15 @@ export default function SolutionSlide() {
                 <s.icon className="size-[1.1em] text-glow" />
               </span>
               <span className="font-mono deck-small text-muted-foreground">0{i + 1}</span>
+              {i < STEPS.length - 1 && (
+                <motion.span
+                  aria-hidden
+                  className="ml-[0.2em] hidden h-px flex-1 origin-left bg-gradient-to-r from-glow/60 to-transparent xl:block"
+                  initial={{ scaleX: 0 }}
+                  animate={{ scaleX: 1 }}
+                  transition={{ delay: 0.4 + i * 0.12, duration: 0.6, ease: 'easeOut' }}
+                />
+              )}
             </div>
             <p className="deck-body font-medium leading-tight">{s.title}</p>
             <p className="deck-small leading-snug text-muted-foreground">{s.sub}</p>
@@ -62,19 +66,15 @@ export default function SolutionSlide() {
           ))}
         </div>
 
-        {/* Example thread reply */}
-        <Card accent className="flex flex-col gap-[0.5em]">
-          <p className="eyebrow deck-small">Illustrative reply · in thread</p>
-          <div className="flex items-center gap-[0.5em]">
-            <span className="grid size-[1.8em] place-items-center rounded-md bg-glow/20 deck-small font-semibold text-glow">H</span>
-            <p className="deck-small text-muted-foreground">hogbot · 9:46 AM</p>
-          </div>
-          <p className="deck-small leading-snug">
-            Our quote was one tick behind from 9:41:58.3. The quoter pulled for a risk-limit check (<span className="font-mono">max_position</span> on this
-            instance) and re-quoted 180 ms later — after the fill. This strategy is deployed three times; only this config has the tighter limit.
-            Want a ticket for the config diff?
-          </p>
-          <p className="deck-small text-muted-foreground">Sources: pcap lake MBO replay · Prometheus quote latency · instance TOML · 2 repos</p>
+        {/* A real thread */}
+        <Card accent className="flex min-h-0 flex-col gap-[0.5em]">
+          <p className="eyebrow deck-small">A real thread · "did normal taker shoot"</p>
+          <Figure
+            src={deckAsset(DECK_IMAGES.slackThread.src)}
+            alt={DECK_IMAGES.slackThread.alt}
+            imgClassName="max-h-[13em]"
+            caption="Screenshot in, steps shown in the thread, answer with links out. Click to enlarge."
+          />
         </Card>
       </Stagger>
     </div>

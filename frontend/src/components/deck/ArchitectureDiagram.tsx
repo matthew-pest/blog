@@ -283,9 +283,16 @@ export default function ArchitectureDiagram({ iteration, focus, onFocus, classNa
                   )}
                 </motion.button>
               </TooltipTrigger>
-              <TooltipContent side="top" sideOffset={6} className="max-w-xs border border-border bg-popover px-3 py-2 text-popover-foreground shadow-xl">
+              <TooltipContent side="top" sideOffset={6} className={cn('border border-border bg-popover px-3 py-2 text-popover-foreground shadow-xl', node.image ? 'max-w-md' : 'max-w-xs')}>
                 <p className="text-xs font-medium">{node.label}</p>
                 <p className="mt-1 text-[0.72rem] leading-snug text-muted-foreground">{node.tip}</p>
+                {node.image && (
+                  <div className="mt-2 overflow-hidden rounded-lg border border-border/70 bg-ink/60">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={`/api/presentation/asset/${node.image.src}`} alt={node.image.alt} className="block max-h-56 w-full object-cover object-top" />
+                    <p className="px-2 py-1 text-[0.65rem] text-muted-foreground">{node.image.alt}</p>
+                  </div>
+                )}
               </TooltipContent>
             </Tooltip>
           );
