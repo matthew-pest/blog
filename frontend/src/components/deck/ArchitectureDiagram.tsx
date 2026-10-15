@@ -236,7 +236,7 @@ export default function ArchitectureDiagram({ iteration, focus, onFocus, classNa
           const Icon = ICON[node.id] ?? k.icon;
           const r = rect(node);
           const isFocus = focus === node.id;
-          const dim = focus != null && !isFocus && !connected.has(node.id);
+          const dim = (focus != null && !isFocus && !connected.has(node.id)) || (node.unreachable && !isFocus);
           return (
             <Tooltip key={node.id}>
               <TooltipTrigger asChild>
@@ -265,7 +265,11 @@ export default function ArchitectureDiagram({ iteration, focus, onFocus, classNa
                       boxShadow: isFocus ? `0 0 0 0.4cqw color-mix(in oklab, ${k.color} 30%, transparent), 0 1.2cqw 3cqw -1.2cqw oklch(0 0 0 / 70%)` : '0 1cqw 2.4cqw -1.4cqw oklch(0 0 0 / 60%)',
                     } as CSSProperties
                   }
-                  className={cn('absolute flex cursor-pointer items-center gap-[0.8cqw] rounded-[1cqw] border px-[0.9cqw] text-left backdrop-blur-sm transition-shadow', isFocus && 'z-10')}
+                  className={cn(
+                    'absolute flex cursor-pointer items-center gap-[0.8cqw] rounded-[1cqw] border px-[0.9cqw] text-left backdrop-blur-sm transition-shadow',
+                    isFocus && 'z-10',
+                    node.unreachable && 'border-dashed'
+                  )}
                 >
                   <span className="grid size-[2.7cqw] shrink-0 place-items-center rounded-[0.7cqw]" style={{ background: `color-mix(in oklab, ${k.color} 18%, transparent)` }}>
                     <Icon className="size-[1.5cqw]" style={{ color: k.color }} />

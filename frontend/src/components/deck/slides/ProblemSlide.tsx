@@ -5,11 +5,13 @@ import { Boxes, Database, FolderGit2, ScrollText, Settings2, Users, AlertTriangl
 import { Card, Item, Pill, SlideHeader, Stagger } from '../primitives';
 
 const SOURCES = [
-  { icon: ScrollText, name: 'Loki logs', sub: 'what the system said it did' },
-  { icon: Database, name: 'Database tables', sub: 'orders, fills, parameters' },
-  { icon: Boxes, name: 'Parquet lake', sub: 'the book, the queue, the history' },
+  { icon: Database, name: 'TimescaleDB', sub: 'trades, vol, product reference, params schema' },
+  { icon: Database, name: 'Drop-copy DB', sub: 'every iLink message to and from the exchange' },
+  { icon: Database, name: 'Strategy-specific schemas', sub: 'no table of all orders — each strategy keeps its own' },
+  { icon: Boxes, name: 'Two Parquet lakes', sub: 'MBP history; later a full-depth MBO lake from pcaps' },
+  { icon: ScrollText, name: 'Loki logs', sub: 'some apps print 5-level MBO on a fill — sometimes enough' },
   { icon: FolderGit2, name: '~300 repositories', sub: 'many deployed several times with different configs' },
-  { icon: Settings2, name: 'Deployment configs', sub: 'which limits applied to this instance' },
+  { icon: Settings2, name: 'Configs and params', sub: 'GitLab CI, Dockerfiles, compose, per-instance TOML' },
 ];
 
 const NEEDS = ['Traders change nothing about how they ask', 'Minutes, not hours', 'Experts stop being the bottleneck', 'An open-ended question space'];
@@ -104,7 +106,10 @@ export default function ProblemSlide() {
           </ul>
           <Item className="flex items-start gap-[0.6em] deck-small text-muted-foreground">
             <AlertTriangle className="mt-[0.15em] size-[1em] shrink-0 text-glow" />
-            <span>When the first source didn’t explain what the trader saw — Loki says nothing unusual — investigations stalled at a dead end.</span>
+            <span>
+              When the first source didn’t explain what the trader saw, investigations stalled. Queue-priority questions needed the pcap parser: hours per run, one box,
+              SSH, a CLI — so the most common question went mostly unanswered.
+            </span>
           </Item>
         </div>
       </Stagger>

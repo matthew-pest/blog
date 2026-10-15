@@ -6,17 +6,17 @@ import { Card, Item, SlideHeader, Stagger } from '../primitives';
 
 const STEPS = [
   { icon: AtSign, title: 'Tag it in Slack', sub: 'screenshot + a few words — nothing new to learn' },
-  { icon: ScanSearch, title: 'Read the screenshot', sub: 'find the trade they mean among 3–30 on screen' },
-  { icon: BookOpen, title: 'Pick a skill', sub: 'where to look, in what order, for this kind of question' },
-  { icon: Plug, title: 'Investigate through MCP', sub: 'Loki · Prometheus · DBs · Parquet · ~300 repos' },
-  { icon: MessageCircleQuestion, title: 'Ask back when unsure', sub: 'more detail, or permission to act — in the thread' },
-  { icon: Reply, title: 'Answer in the thread', sub: 'brief; the detail is a follow-up away' },
+  { icon: ScanSearch, title: 'Read the screenshot', sub: 'the trade they mean, the instrument, qty, edge' },
+  { icon: BookOpen, title: 'Pick a skill', sub: 'a playbook with a deterministic script for this question' },
+  { icon: Plug, title: 'Run it; explore on a miss', sub: 'script first, then MCP: Timescale · drop-copy · lakes · Loki · repos' },
+  { icon: MessageCircleQuestion, title: 'Ask back when unsure', sub: 'more detail, or permission to act — progress shown in the thread' },
+  { icon: Reply, title: 'Answer in the thread', sub: 'seconds to a minute; brief; detail a follow-up away' },
 ];
 
 const PRINCIPLES = [
   { icon: Workflow, title: 'No workflow change', body: 'Slack is the interface. OpenCode is the brain. Traders never leave the thread.' },
-  { icon: Fingerprint, title: 'Native access, not guesses', body: 'MCP servers give the agent the same systems the quants used — logs, metrics, tables, the lake, the code.' },
-  { icon: Hand, title: 'Human in the loop', body: 'Ambiguous screenshot? Risky action? Hogbot asks first, in the same thread.' },
+  { icon: Fingerprint, title: 'Scripts first, explore second', body: 'Deterministic lookups through skills; MCP servers to course-correct and refine the script when one falls short.' },
+  { icon: Hand, title: 'Human in the loop', body: 'Ambiguous ask? Risky action? Hogbot asks first, and posts progress, in the same thread.' },
 ];
 
 export default function SolutionSlide() {
@@ -74,7 +74,7 @@ export default function SolutionSlide() {
             instance) and re-quoted 180 ms later — after the fill. This strategy is deployed three times; only this config has the tighter limit.
             Want a ticket for the config diff?
           </p>
-          <p className="deck-small text-muted-foreground">Sources: Parquet replay · Prometheus quote latency · strategy config · 2 repos</p>
+          <p className="deck-small text-muted-foreground">Sources: pcap lake MBO replay · Prometheus quote latency · instance TOML · 2 repos</p>
         </Card>
       </Stagger>
     </div>

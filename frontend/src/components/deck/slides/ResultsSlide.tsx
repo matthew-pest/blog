@@ -24,7 +24,7 @@ function Bars({ metric, className }: { metric: Metric; className?: string }) {
         const lit = v === best;
         return (
           <div key={i} className="flex flex-1 flex-col items-center gap-[0.3em]">
-            <span className={cn('deck-small font-mono', lit ? 'text-glow' : 'text-muted-foreground')}>{fmt(v, metric.unit)}</span>
+            <span className={cn('deck-small font-mono', lit ? 'text-glow' : 'text-muted-foreground')}>{metric.display?.[i] ?? fmt(v, metric.unit)}</span>
             <div className="flex h-[3.2em] w-full items-end">
               <motion.div
                 className={cn('w-full rounded-t-[0.3em]', lit ? 'bg-glow' : 'bg-foreground/25')}
