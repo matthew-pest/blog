@@ -480,7 +480,7 @@ export const ARCHITECTURE: ArchIteration[] = [
       'Failure path: when a script misses, explore over MCP, then fix the script — the learning loop.',
       'LangSmith tracing on every investigation; nightly regression evals over a golden question set.',
       'Brevity-tuned system prompt and an explicit max-steps budget; state-of-the-art models by default, smaller ones only for simple subagent tasks.',
-      'Full-depth MBO Parquet lake rebuilt from pcaps (all incoming MDP across traded channels + all iLink session data), with its own MCP.',
+      'Full-depth MBO Parquet lake rebuilt from pcaps (all incoming MDP across traded channels + all iLink session data), with its own skill and reference scripts using DuckDB.',
       'Scheduler for recurring work: "run this script daily and DM me the results".',
     ],
     nodes: [
@@ -702,7 +702,7 @@ export const HOGBOT_FACTS = [
   'Latency came down from reusable scripts in skills instead of guided MCP tool calls, a system prompt tuned for brevity, and an explicit max-steps budget in the agent definition so capable models (Astra, Fable) cannot spin for 10–20 minutes. Current release: answers often in seconds, a minute or two max. v1/v2 were far too verbose and slow and often still wrong. Better models help, but the gains hold without frontier models.',
   'Model selection matters. Hogbot defaults to state-of-the-art models everywhere; the main agent typically does all the work itself. Some subagents are defined with smaller models such as Haiku for simple tasks. Better models help, but the v3 gains do not depend on being on frontier models.',
   'Slack connectivity: v1 used a cloud DB that an on-prem proxy polled. v2 and v3 use Slack Socket Mode — the Slack app connects over an outbound websocket (Slack positions it as a sandbox-ish feature, but it was the better option: no inbound ingress). The proxy uses Vercel\'s Chat SDK with the Slack adapter; some Block Kit elements are still handled by hand, abstracted enough to stop rendering errors from OpenCode\'s response text, with refined progress and step updates in the thread so traders can see what Hogbot is doing without leaving it. There are no inbound webhooks.',
-  'MCP coverage expanded over time: Loki, Prometheus (v1 onward), TimescaleDB, the drop-copy DB MCP and the pcap Parquet lake MCP (v2 and up).',
+  'MCP coverage expanded over time: Loki, Prometheus (v1 onward), TimescaleDB, the drop-copy DB MCP (v2 and up). The pcap-backed MBO Parquet lake is reached through its own skill and reference scripts that query it with DuckDB, not an MCP server.',
   'The screenshot carries the time as well as the trade: timestamps are the critical element for lookups and bounded queries — every script and MCP query is scoped to the window the screenshot shows.',
   'Screenshot reading was a v1-era weakness (misidentifying the trade of interest, misreading instrument names, quantities, edge). It is no longer an issue: better models plus skills that explain what the model is looking at and how to identify what a trader implies.',
   'Human in the loop serves three purposes: asking for missing detail, asking permission before an action, and approving eval examples — a lesson learned is simple to add as a regression/eval test example with a known answer.',
